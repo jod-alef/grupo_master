@@ -1,0 +1,36 @@
+<div class="column">
+    <label class="label" for="id_metal_base_espessura">Espessura:</label>
+    <div class="select">
+        {{ form.metal_base_espessura }}
+    </div>
+    {% if form.metal_base_espessura.errors %}
+        <p class="help is-danger">{{ form.metal_base_espessura.errors.0 }}</p>
+    {% endif %}
+</div>
+<div class="column">
+    <label class="label" for="id_metal_base_diametro">Diâmetro:</label>
+    <div class="select">
+        {{ form.metal_base_diametro }}
+    </div>
+    {% if form.metal_base_diametro.errors %}
+        <p class="help is-danger">{{ form.metal_base_diametro.errors.0 }}</p>
+    {% endif %}
+</div>
+<div class="column">
+    <label class="label" for="id_posicao_soldagem">Posição de Soldagem:</label>
+    <div class="select">
+        <select id="id_posicao_soldagem" name="posicao_soldagem"
+                hx-get="{% url 'update-progressao' %}"
+                hx-trigger="change"
+                hx-target="#progressao-choices"
+                hx-swap="innerHTML">
+            {% for choice_value, choice_label in form.fields.posicao_soldagem.choices %}
+                <option value="{{ choice_value }}">{{ choice_label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% if form.posicao_soldagem.errors %}
+        <p class="help is-danger">{{ form.posicao_soldagem.errors.0 }}</p>
+    {% endif %}
+</div>
+

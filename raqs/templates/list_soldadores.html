@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Soldadores{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Lista de Soldadores</h1>
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Empresa</th>
+            <th>Sinete</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for soldador in soldadores %}
+        <tr>
+            <td>{{ soldador.nome }}</td>
+            <td>{{ soldador.cpf }}</td>
+            <td>{{ soldador.empresa.nome }}</td>
+            <td>{{ soldador.sinete }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'cadastro-soldador' %}" class="btn btn-primary">Cadastrar Novo Soldador</a>
+{% endblock %}

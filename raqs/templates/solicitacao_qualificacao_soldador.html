@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitação de Qualificação de Soldador{% endblock %}
+
+{% block content %}
+    <section class="hero is-link">
+        <article class="media">
+            <figure class="media-left pt-5 pl-4">
+                <p class="image is-128x128">
+                    <img src="{% static 'imgs/grupo_master.png' %}"/>
+                </p>
+            </figure>
+            <div class="hero-body">
+                <p class="title is-size-1-fullhd is-size-4-tablet is-size-6-mobile">Solicitação de Qualificação de Soldador</p>
+                <div class="columns">
+                    <div class="column is-1 is-2-desktop is-2-tablet">
+                        <p class="title is-size-5 is-size-6-desktop is-size-6-tablet">Nome do soldador:</p>
+                    </div>
+                    <div class="column">
+                        <p class="subtitle">{{ soldador.nome }}</p>
+                    </div>
+                    <div class="column is-1 is-2-desktop is-2-tablet">
+                        <p class="title is-size-5 is-size-6-desktop is-size-6-tablet">Empresa:</p>
+                    </div>
+                    <div class="column">
+                        <p class="subtitle">{{ empresa.nome }}</p>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </section>
+
+
+    <form class="box" method="post">
+        {% csrf_token %}
+        {% if error_messages %}
+        <article class="message is-danger">
+            <div class="message-body">
+                Por favor, corrija os erros abaixo antes de enviar o formulário.
+            </div>
+        </article>
+    {% endif %}
+
+        <div class="columns is-2">
+            <div class="column is-2">
+                <div class="field is-narrow">
+                    <label class="label" for="id_eps">EPS:</label>
+                </div>
+                <div class="field-body">
+                    <div class="field is-narrow">
+                        <div class="control">
+                            {{ form.eps }}
+                        </div>
+                        {% if form.eps.errors %}
+                    <p class="help is-danger">{{ form.eps.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="column is-2">
+                <div class="field is-narrow">
+                    <label class="label" for="id_sinete">Sinete:</label>
+                </div>
+                <div class="field-body">
+                    <div class="field is-narrow">
+                        <div class="control">
+                            {{ form.sinete }}
+                        </div>
+                        {% if form.sinete.errors %}
+                    <p class="help is-danger">{{ form.sinete.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label" for="id_norma_projeto">Norma do Projeto:</label>
+                </div>
+
+                <div class="field-body">
+                    <div class="field is-narrow">
+                        <div class="control">
+                            <div class="select">
+                                <select id="id_norma_projeto" name="norma_projeto"
+                                        hx-get="{% url 'update-ensaio-choices' %}"
+                                        hx-trigger="change"
+                                        hx-target="#ensaio-container"
+                                        hx-swap="innerHTML">
+                                    {% for choice_value, choice_label in form.fields.norma_projeto.choices %}
+                                        <option value="{{ choice_value }}">{{ choice_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    {% if form.norma_projeto.errors %}
+                    <p class="help is-danger">{{ form.norma_projeto.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label" for="id_processo_soldagem">Processo de Soldagem:</label>
+                    <div class="control">
+                        <div class="select">
+                            <select id="id_processo_soldagem" name="processo_soldagem"
+                                    hx-get="{% url 'update-gas-protecao' %}"
+                                    hx-trigger="change"
+                                    hx-target="#gas-protecao"
+                                    hx-swap="innerHTML">
+                                {% for choice_value, choice_label in form.fields.processo_soldagem.choices %}
+                                    <option value="{{ choice_value }}">{{ choice_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                {% if form.processo_soldagem.errors %}
+                    <p class="help is-danger">{{ form.processo_soldagem.errors.0 }}</p>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="box">
+            <p class="is-size-4 is-underlined has-text-weight-medium">Consumíveis</p>
+            <div class="columns">
+                <div class="column">
+                    <div class="field">
+                        <label class="label" for="id_consumivel_spec">Especificação do Consumível:</label>
+                    </div>
+                    <div class="control">
+                        <div class="select">
+                            {{ form.consumivel_spec }}
+                        </div>
+                        {% if form.consumivel_spec.errors %}
+                    <p class="help is-danger">{{ form.consumivel_spec.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+
+                <div class="column">
+                    <div class="field">
+                        <label class="label" for="id_consumivel_classificacao">Classificação do Consumível:</label>
+                        <div class="select">
+                            {{ form.consumivel_classificacao }}
+                        </div>
+                        {% if form.consumivel_classificacao.errors %}
+                    <p class="help is-danger">{{ form.consumivel_classificacao.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="field">
+                        <label class="label" for="id_consumivel_diametro">Diâmetro do Consumível:</label>
+                        <div class="select">
+                            {{ form.consumivel_diametro }}
+                        </div>
+                        {% if form.consumivel_diametro.errors %}
+                    <p class="help is-danger">{{ form.consumivel_diametro.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="box">
+            <p class="is-size-4 is-underlined has-text-weight-medium">Metal de Base</p>
+            <div class="columns">
+                <div class="column">
+
+                        <label class="label" for="id_metal_base_spec">Especificação do Metal Base:</label>
+                        <div class="select">
+                            <select id="id_metal_base_spec" name="metal_base_spec"
+                                    hx-get="{% url 'update-metal-fields' %}"
+                                    hx-trigger="change"
+                                    hx-target="#dynamic-metal-fields"
+                                    hx-swap="innerHTML">
+                                {% for choice_value, choice_label in form.fields.metal_base_spec.choices %}
+                                    <option value="{{ choice_value }}">{{ choice_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                </div>
+            {% if form.metal_base_spec.errors %}
+                    <p class="help is-danger">{{ form.metal_base_spec.errors.0 }}</p>
+                {% endif %}
+            <div class="field-body" id="dynamic-metal-fields">
+                    <!-- Campos dinâmicos renderizados aqui -->
+                    </div>
+            </div>
+            <div class="columns">
+                <div class="field column">
+                    <label class="label" for="id_posicao_soldagem_progressao">Progressão:</label>
+                    <div id="progressao-choices">
+                        <div class="select">
+                            <select id="id_posicao_soldagem_progressao" name="posicao_soldagem_progressao">
+                                {% for choice_value, choice_label in form.fields.posicao_soldagem_progressao.choices %}
+                                    <option value="{{ choice_value }}">{{ choice_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div id="progressao-choices">
+                    </div>
+                </div>
+                <div class="column is-2">
+                    <div class="py-3">
+                        <label class="checkbox has-text-weight-bold pr-2" for="id_cobre_junta">Cobre Junta:</label>
+                        <div class="checkbox pb-2">
+                            {{ form.cobre_junta }}
+                        </div>
+                        {% if form.cobre_junta.errors %}
+                    <p class="help is-danger">{{ form.cobre_junta.errors.0 }}</p>
+                {% endif %}
+
+
+                        <label class="checkbox has-text-weight-bold pr-2" for="id_purga">Purga:</label>
+                        <div class="checkbox">
+                            {{ form.purga }}
+                        </div>
+                    {% if form.purga.errors %}
+                    <p class="help is-danger">{{ form.purga.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+                <div class="field column">
+                    <label class="label" for="id_gas_protecao">Gás de Proteção:</label>
+                    <div id="gas-protecao">
+                        <div class="select">
+                            <select id="id_gas_protecao" name="gas_protecao">
+                                {% for choice_value, choice_label in form.fields.gas_protecao.choices %}
+                                    <option value="{{ choice_value }}">{{ choice_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% if form.gas_protecao.errors %}
+                    <p class="help is-danger">{{ form.gas_protecao.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+
+
+                <div class="field column">
+                    <label class="label" for="id_modo_transferencia">Modo de Transferência:</label>
+                    <div class="select">
+                        {{ form.modo_transferencia }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="label is-normal" id="ensaio-container">
+                <label class="label" for="id_ensaio">Tipo de Ensaio:</label>
+            </div>
+
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label">
+                <!-- Left empty for spacing -->
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="field is-grouped">
+        <button class="button is-primary" name="add_another" value="1" type="submit">Salvar e Adicionar Outra</button>
+        <button class="button is-success" name="save_and_return" type="submit">Salvar e Voltar</button>
+        <button class="button is-danger" type="button" onclick="window.location.href='{% url 'empresa-dashboard' %}';">Cancelar</button>
+    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+{% endblock %}

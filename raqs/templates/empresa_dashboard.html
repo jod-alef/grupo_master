@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load template_filter %}
+{% block title %}Dashboard - {{ empresa.nome }}{% endblock %}
+
+{% block content %}
+    <section class="hero is-link is-small">
+        <article class="media">
+            <figure class="media-left py-5 pl-4">
+                <p class="image is-128x128">
+                    <img src="{% static 'imgs/grupo_master.png' %}"/>
+                </p>
+            </figure>
+            <div class="hero-body">
+                <p class="title">Painel - {{ empresa.nome }}</p>
+                <p class="subtitle">Gerencie seus soldadores e solicitações</p>
+            </div>
+        </article>
+    </section>
+    <div class="box">
+        <div class="columns is-desktop">
+            <div class="column">
+                <h3 class="title is-4">Soldadores</h3>
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>CPF</th>
+                        <th>Sinete</th>
+                        <th>CP Nº</th>
+                        <th>Solicitação</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for soldador in soldadores %}
+
+                        <tr>
+                        <td>{{ soldador.soldador.nome }}</td>
+                        <td>{{ soldador.soldador.cpf }}</td>
+                        <td>{{ soldador.sinete }}</td>
+                        <td>{{ soldador.cp_number }}</td>
+                        <td>{{ soldador.data|date:"d-m-Y" }}</td>
+                        <td>{{ soldador_status|get_item:soldador.soldador.id }}</td>
+                        <td>
+                            <a href="{% url 'solicitacao-qualificacao-soldador' soldador.id %}"
+                               class="button is-small is-link">Nova Solicitação</a>
+                        </td>
+                    {% endfor %}
+
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="column is-2-desktop is-3-tablet">
+        <a href="{% url 'cadastro-soldador' %}" class="button is-primary is-fullwidth">Adicionar Soldador</a>
+    </div>
+{% endblock %}

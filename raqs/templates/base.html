@@ -1,0 +1,99 @@
+{% load django_htmx static %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Django App{% endblock %}</title>
+    <link rel="stylesheet" href={% static 'styles/grupo-master.css' %}>
+    <script src="{% static 'htmx.min.js' %}" defer></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body data-theme="light">
+    <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="{% url 'empresa-dashboard' %}">
+                Painel
+            </a>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="{% url 'cadastro-soldador' %}">
+                    Cadastro Soldador
+                </a>
+             </div>
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <button id="toggle" class="button">Modo Escuro</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    {% django_htmx_script %}
+    <script>
+        // Navbar toggle for Bulma
+        document.addEventListener('DOMContentLoaded', () => {
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+            if ($navbarBurgers.length > 0) {
+                $navbarBurgers.forEach(el => {
+                    el.addEventListener('click', () => {
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+                    });
+                });
+            }
+        });
+
+        // Referências
+        const body = document.body;
+        const toggle = document.getElementById('toggle');
+
+        // Carregar tema salvo
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            body.setAttribute('data-theme', savedTheme);
+            toggle.textContent = savedTheme === 'dark' ? 'Modo Claro' : 'Modo Escuro';
+        }
+
+        // Alternar tema e salvar no localStorage
+        toggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            body.setAttribute('data-theme', newTheme);
+            toggle.textContent = newTheme === 'dark' ? 'Modo Claro' : 'Modo Escuro';
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // Inicializar tema
+        document.addEventListener('DOMContentLoaded', loadTheme);
+    function formatCPF(input) {
+        let value = input.value.replace(/\D/g, ''); // Remove non-digit characters
+        if (value.length > 3) {
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        }
+        if (value.length > 6) {
+            value = value.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+        }
+        if (value.length > 9) {
+            value = value.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+        }
+        input.value = value.slice(0, 14); // Limit display to CPF format
+    }
+</script>
+</body>
+</html>

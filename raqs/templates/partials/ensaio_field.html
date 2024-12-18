@@ -1,0 +1,13 @@
+<label class="label" for="id_ensaio">Tipo de Ensaio:</label>
+  <div class="field-body">
+                <div class="field is-narrow">
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            {{ field }}
+                        </div>
+                        {% if form.ensaio.errors %}
+                    <p class="help is-danger">{{ form.ensaio.errors.0 }}</p>
+                {% endif %}
+                    </div>
+                </div>
+            </div>

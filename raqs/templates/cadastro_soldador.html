@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitação de Qualificação de Soldador{% endblock %}
+
+{% block content %}
+    <section class="hero is-link is-small">
+        <div class="hero-body">
+            <p class="title">Cadastro de Soldador</p>
+            <p class="subtitle">{{ empresa.nome }}</p>
+        </div>
+    </section>
+    <div class="box">
+
+        <form method="post">
+    {% csrf_token %}
+    <div class="field">
+    <label class="label" for="cpf">CPF:</label>
+    <div class="control">
+        <input id="id_cpf" name="cpf" class="input" type="text" hx-get="{% url 'verificar-cpf' %}"
+               hx-trigger="blur" hx-target="#cpf-result" hx-swap="outerHTML"
+               maxlength="14" oninput="formatCPF(this)" placeholder="111.111.111-11">
+    </div>
+    </div>
+    <div id="cpf-result"></div>
+
+    <div class="field">
+        <label class="label" for="nome">Nome:</label>
+        <div class="control">
+            {{ form.nome }}
+        </div>
+    </div>
+    <div class="field is-grouped">
+    <button class="button is-primary" type="submit" name="add_solicitacao" value="true">
+        Salvar e Criar Solicitação
+    </button>
+    <button class="button is-link" type="submit" name="add_another" value="true">
+        Salvar e Adicionar Outro Soldador
+    </button>
+    <a href="{% url 'empresa-dashboard' %}" class="button is-light">Cancelar</a>
+</div>
+</form>
+    </div>
+
+{% endblock %}

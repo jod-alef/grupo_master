@@ -1,0 +1,4 @@
+<div id="cpf-result" class="notification is-warning">
+    <p>O CPF já está cadastrado para: {{ soldador.nome }}</p>
+    <a href="{% url 'solicitacao-qualificacao-soldador' soldador.id %}" class="button is-link">Adicionar Solicitação</a>
+</div>
