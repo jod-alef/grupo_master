@@ -24,7 +24,7 @@ class Soldador(models.Model):
         return f"{self.nome}"
 
 
-class Empresa(models.Model):  # TODO: Mais algum dado?
+class Empresa(models.Model):
     nome = models.CharField(max_length=100)
     logo = models.ImageField(upload_to='logos')
 
@@ -51,9 +51,9 @@ class Operador(AbstractEmpresaUser):
 
 
 class SolicitacaoCadastroSoldador(models.Model):  # TODO: Perguntar sobre cabeçalho - Lógica de auto-complete
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
-    soldador = models.ForeignKey(Soldador, on_delete=models.CASCADE)
-    sinete = models.CharField(max_length=10)
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
+    soldador = models.ForeignKey(Soldador, on_delete=models.PROTECT)
+    sinete = models.CharField(max_length=10)  # TODO: SINETE É Ñ OBRIGATÓRIO
     data = models.DateField(auto_now=True)
     eps = models.CharField(max_length=10)
     NORMA_PROJETO_CHOICES = (
@@ -69,17 +69,18 @@ class SolicitacaoCadastroSoldador(models.Model):  # TODO: Perguntar sobre cabeç
     )
     norma_projeto = models.CharField(max_length=10, choices=NORMA_PROJETO_CHOICES)
     PROCESSO_SOLDAGEM_CHOICES = (
-        ("SMAW", "Soldagem com eletrodo revestido"),
-        ("GTAW", "Soldagem TIG"),
-        ("GMAW", "Soldagem MIG"),
-        ("FCAW", "Soldagem com arame tubular")
+        ("SMAW", "SMAW - Soldagem com eletrodo revestido"),
+        ("GTAW", "GTAW - Soldagem TIG"),
+        ("GMAW", "GMAW - Soldagem MIG"),
+        ("FCAW", "FCAW - Soldagem com arame tubular")
     )
     processo_soldagem = models.CharField(max_length=4, choices=PROCESSO_SOLDAGEM_CHOICES)
 
     CONSUMIVEL_SPEC_CHOICES = [
         ("SFA_5-1", "SFA 5.1"),
         ("SFA_5-4", "SFA 5.4"),
-        ("SFA_5-5", "SFA 5.5"),
+        ("SFA_5-9", "SFA 5.9"),
+        ("SFA_5-14", "SFA 5.14"),
         ("SFA_5-11", "SFA 5.11"),
         ("SFA_5-18", "SFA 5.18"),
         ("SFA_5-20", "SFA 5.20")]
@@ -89,12 +90,16 @@ class SolicitacaoCadastroSoldador(models.Model):  # TODO: Perguntar sobre cabeç
         ("E7018", "E7018"),
         ("E6010", "E6010"),
         ("E-71T-1", "E-71T-1"),
-        ("E-309", "E-309"),
-        ("E-312", "E-312"),
+        ("E-309L", "E-309L"),
         ("ER-70S-3", "ER-70S-3"),
         ("ER-70S-6", "ER-70S-6"),
-        ("ER-309", "ER-309")]
-    consumivel_classificacao = models.CharField(max_length=8, choices=CONSUMIVEL_CLASS_CHOICES)
+        ("ER-309L", "ER-309L"),
+        ("ER-308L", "ER-308L"),
+        ("ER-NiCrFe3", "ER-NiCrFe3"),
+        ("E-NiCrFe3", "E-NiCrFe3"),
+        ("ER-NiCrMo3", "E-NiCrMo3"),
+    ]
+    consumivel_classificacao = models.CharField(max_length=10, choices=CONSUMIVEL_CLASS_CHOICES)
     CONSUMIVEL_DIAMETRO_CHOICES = [
         ("1.2", "1,2 mm"),
         ("3.2", "3,25 mm")
@@ -165,8 +170,10 @@ class SolicitacaoCadastroSoldador(models.Model):  # TODO: Perguntar sobre cabeç
         ("ULTRASSOM", "Ultrassom")
     )
     ensaio = models.CharField(max_length=10,
-                              choices=ENSAIO_CHOICES)  # Caso AWS = Dobramento | Caso ASME = Dobramento ou UT
-    cp_number = models.CharField(max_length=15, editable=False, blank=True)  # Apenas leitura
+                              choices=ENSAIO_CHOICES)
+    f_number = models.CharField(max_length=2)
+    faixa_qualificada = models.CharField(max_length=15)
+    cp_number = models.CharField(max_length=15, editable=False, blank=True)  # Apenas leitura TODO: POR EMPRESA!!!! - Inserir TESTE VISUAL!!! Inserir REVALIDAÇÃO!!!
 
     class Meta:
         verbose_name = 'Solicitação de Cadastro de Soldadores'
@@ -193,6 +200,7 @@ class EnsaioMecanicoDobramento(models.Model):
     fotos_amostra_1 = models.FileField(upload_to='media/')
     fotos_amostra_2 = models.FileField(upload_to='media/')
     fotos_amostra_3 = models.FileField(upload_to='media/')
+    fotos_amostra_4 = models.FileField(upload_to='media/')
     aprovado = models.BooleanField()
 
     class Meta:
@@ -201,23 +209,6 @@ class EnsaioMecanicoDobramento(models.Model):
 
     def __str__(self):
         return f"Ensaio de {self.solicitacao.soldador.nome} em {self.data_teste}"
-
-    # TODO:
-    '''
-    Dúvidas:    
-    RAQS = Numeração auto incrementavel correspondente à solicitação total.
-    
-    Lógica de preenchimento da solicitação de qualificação de soldadores:
-    
-     - Usar HTMX para criar um formulário que adicione automaticamente as solicitações como abaixo
-            -- Cabeçalho
-            |-- Empresa
-            |-- Soldador - Cadastrar - Autocomplete para Existentes
-            -- Formulário de Solicitação de Qualificação
-            |-- Confirmação
-            -- Lista de Solicitações
-    
-    '''
 
 
 class EnsaioUltrassom(models.Model):

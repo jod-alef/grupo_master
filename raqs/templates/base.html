@@ -1,21 +1,19 @@
 {% load django_htmx static %}
 
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="pt-br" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Django App{% endblock %}</title>
+    <title>{% block title %}Sistema Master de Qualificaçãod de Soldadores{% endblock %}</title>
     <link rel="stylesheet" href={% static 'styles/grupo-master.css' %}>
     <script src="{% static 'htmx.min.js' %}" defer></script>
     {% block extra_head %}{% endblock %}
 </head>
-<body data-theme="light">
+<body>
     <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
+    {% if request.user.is_authenticated %}
         <div class="navbar-brand">
-            <a class="navbar-item" href="{% url 'empresa-dashboard' %}">
-                Painel
-            </a>
             <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
@@ -24,24 +22,40 @@
         </div>
 
         <div id="navbarBasicExample" class="navbar-menu">
+            <a class="navbar-item" href="{% url 'empresa-dashboard' %}">
+                Painel
+            </a>
             <div class="navbar-start">
                 <a class="navbar-item" href="{% url 'cadastro-soldador' %}">
                     Cadastro Soldador
                 </a>
-             </div>
+            </div>
             <div class="navbar-end">
                 <div class="navbar-item">
+                    <p>Bem vindo, {{ request.user.username }}!</p>
                     <button id="toggle" class="button">Modo Escuro</button>
+                </div>
+                {% endif %}
+
+                <div class="navbar-item">
+                    {% if request.user.is_authenticated %}
+                        <form method="POST" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button class="button is-light" type="submit">Logout</button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="button is-light">Login</a>
+                          <button id="toggle" class="button">Modo Escuro</button>
+                    {% endif %}
                 </div>
             </div>
         </div>
-    </nav>
+</nav>
 
     <div class="content">
         {% block content %}
         {% endblock %}
     </div>
-
     {% django_htmx_script %}
     <script>
         // Navbar toggle for Bulma
@@ -60,7 +74,7 @@
         });
 
         // Referências
-        const body = document.body;
+        const body = document.documentElement;
         const toggle = document.getElementById('toggle');
 
         // Carregar tema salvo
@@ -80,9 +94,9 @@
         });
 
         // Inicializar tema
-        document.addEventListener('DOMContentLoaded', loadTheme);
+        loadTheme();
     function formatCPF(input) {
-        let value = input.value.replace(/\D/g, ''); // Remove non-digit characters
+        let value = input.value.replace(/\D/g, ''); // Remove caracteres não numéricos
         if (value.length > 3) {
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
         }
@@ -92,7 +106,7 @@
         if (value.length > 9) {
             value = value.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
         }
-        input.value = value.slice(0, 14); // Limit display to CPF format
+        input.value = value.slice(0, 14); // Limita valor pro CPF
     }
 </script>
 </body>

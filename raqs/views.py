@@ -1,4 +1,7 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login, authenticate
+from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from raqs.forms import SoldadorForm, SolicitacaoCadastroSoldadorForm
 from raqs.models import *
@@ -44,7 +47,7 @@ def cadastro_soldador(request):
             if "add_solicitacao" in request.POST:
                 return redirect("solicitacao-qualificacao-soldador", soldador_id=soldador.id)
             elif "add_another" in request.POST:
-                return render(request, "cadastro_soldador.html", {'form': form})
+                return render(request, "cadastro_soldador.html", {'form': SoldadorForm()})
             return redirect('solicitacao_qualificacao_soldador', soldador_id=soldador.id)  # Redirect to next form
     else:
         form = SoldadorForm()
@@ -81,7 +84,7 @@ def update_metal_fields(request):
     # Obtenha o valor enviado pelo HTMX
     metal_base_spec = request.GET.get('metal_base_spec', '').strip()
     form = SolicitacaoCadastroSoldadorForm()
-    print("A escolha foi:", metal_base_spec)  # Para depuração
+    # print("A escolha foi:", metal_base_spec)  # Para depuração
 
     # Ajuste os campos com base na escolha
     if metal_base_spec in ["A-36", "SB536", "A-309", "A-312"]:
@@ -105,9 +108,9 @@ def update_metal_fields(request):
 def update_progressao_choices(request):
     posicao_soldagem = request.GET.get('posicao_soldagem', '').strip()
     form = SolicitacaoCadastroSoldadorForm()
-    print("Posição de Soldagem:", posicao_soldagem)
+    # print("Posição de Soldagem:", posicao_soldagem) # Depuração
 
-    # Dynamically adjust the `ensaio` field based on `norma_projeto`
+    # Ajustar dinâmicamente a posição com base na progressão
     if posicao_soldagem in ["6G"]:
         form.fields['posicao_soldagem_progressao'].disabled = False
         form.fields['posicao_soldagem_progressao'].choices = [
@@ -122,63 +125,44 @@ def update_progressao_choices(request):
     else:
         form.fields['posicao_soldagem_progressao'].readonly = True
 
-    # Render the updated `ensaio` field
+    # Renderiza o campo de progressão
 
     return render (request,'partials/progressao_field.html', {'field': form['posicao_soldagem_progressao']})
 
 
-def update_gas_protecao(request):
-    processo_soldagem = request.GET.get('processo_soldagem', '').strip()
-    form = SolicitacaoCadastroSoldadorForm()
-    print("Processo de Soldagem:", processo_soldagem)
-
-    # Dynamically adjust the `ensaio` field based on `norma_projeto`
-    if processo_soldagem in ["GTAW"]:
-        form.fields['gas_protecao'].disabled = False
-        form.fields['gas_protecao'].choices = [
-            ("ARGONIO", "Argônio")
-        ]
-    elif processo_soldagem in ["GMAW"]:
-        form.fields['gas_protecao'].disabled = False
-        form.fields['gas_protecao'].choices = [
-            ("ARCO2", "Ar+CO²"),
-        ]
-    elif processo_soldagem in ["FCAW"]:
-        form.fields['gas_protecao'].disabled = False
-        form.fields['gas_protecao'].choices = [
-            ("CO2", "CO²"),
-        ]
-    else:
-        form.fields['gas_protecao'].readonly = True
-        form.fields['gas_protecao'].choices = [
-            ("NA", "N/A"),
-        ]
-
-    # Render the updated `ensaio` field
-
-    return render (request,'partials/gas_protec_field.html', {'field': form['gas_protecao']})
-
-
 @login_required
-def empresa_dashboard(request):
+def solicitacoes_soldador(request, soldador_id):
     empresa = get_object_or_404(Empresa, usuarios__id=request.user.id)
-    soldadores = SolicitacaoCadastroSoldador.objects.filter(empresa=empresa)
+    soldador = get_object_or_404(Soldador, id=soldador_id)
+    solicitacoes = SolicitacaoCadastroSoldador.objects.filter(soldador=soldador, empresa=empresa)
 
     soldador_status = {}
-    for solicitacao in soldadores:
+    for solicitacao in solicitacoes:
         status = "Aguardando Teste"
         if EnsaioMecanicoDobramento.objects.filter(solicitacao=solicitacao, aprovado=True).exists():
             status = "Aprovado - DM"
         elif EnsaioUltrassom.objects.filter(solicitacao=solicitacao, aprovado=True).exists():
             status = "Aprovado - UT"
 
-        soldador_status[solicitacao.soldador.id] = status
-        print(status)
+        soldador_status[solicitacao.id] = status
+
+    return render(request, 'partials/solicitacoes_soldador.html', {
+        'soldador': soldador,
+        'solicitacoes': solicitacoes,
+        'soldador_status': soldador_status,
+        'empresa': empresa,
+    })
+
+@login_required
+def empresa_dashboard(request):
+    empresa = get_object_or_404(Empresa, usuarios__id=request.user.id)
+    soldadores = Soldador.objects.filter(solicitacaocadastrosoldador__empresa=empresa).distinct()
+    solicitacoes = SolicitacaoCadastroSoldador.objects.filter(empresa=empresa)
 
     return render(request, 'empresa_dashboard.html', {
         'empresa': empresa,
         'soldadores': soldadores,
-        'soldador_status': soldador_status
+        'solicitacoes': solicitacoes,
     })
 
 
@@ -189,3 +173,128 @@ def verificar_cpf_htmx(request):
     if soldador:
         return render(request, 'partials/existente_soldador.html', {'soldador': soldador})
     return render(request, 'partials/novo_soldador.html')
+
+
+def custom_login_view(request):
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get("username")
+            password = form.cleaned_data.get("password")
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect("empresa-dashboard")  # Redirect to a dashboard or home page
+            else:
+                messages.error(request, "Senha ou usuário inválidos. Tente novamente..")
+        else:
+            messages.error(request, "Senha ou usuário inválidos. Tente novamente..")
+    else:
+        form = AuthenticationForm(request=request)
+
+    return render(request, "login.html", {"form": form})
+
+
+@login_required
+def apagar_solicitacao(request, solicitacao_id):
+    solicitacao = get_object_or_404(SolicitacaoCadastroSoldador, id=solicitacao_id)
+    solicitacao.delete()
+    return redirect('empresa-dashboard')
+
+
+def update_consumivel_classificacao(request):
+    processo_soldagem = request.GET.get('processo_soldagem', '').strip()
+    form = SolicitacaoCadastroSoldadorForm()
+    print("Processo de Soldagem:", processo_soldagem)
+
+    if processo_soldagem == "SMAW":
+        form.fields['consumivel_classificacao'].choices = [
+            ("E6010", "E6010"),
+            ("E7018", "E7018"),
+            ("E-NiCrFe3", "E-NiCrFe3"),
+            ("E-309L", "E-309L")
+        ]
+        form.fields['consumivel_spec'].choices = [
+            ("SFA_5-1", "SFA 5.1"),
+            ("SFA_5-4", "SFA 5.4"),
+            ("SFA_5-11", "SFA 5.11"),
+        ]
+    elif processo_soldagem == "GTAW":
+        form.fields['consumivel_classificacao'].choices = [
+            ("ER-70S-3", "ER-70S-3"),
+            ("ER-309L", "ER-309L"),
+            ("ER-308L", "ER-308L"),
+            ("ER-NiCrFe3", "ER-NiCrFe3"),
+            ("ER-NiCrMo3", "ER-NiCrMo3")
+        ]
+        form.fields['consumivel_spec'].choices = [
+            ("SFA_5-9", "SFA 5.9"),
+            ("SFA_5-14", "SFA 5.14"),
+            ("SFA_5-18", "SFA 5.18"),
+        ]
+        form.fields['gas_protecao'].disabled = False
+        form.fields['gas_protecao'].choices = [
+            ("ARGONIO", "Argônio")
+        ]
+    elif processo_soldagem == "GMAW":
+        form.fields['consumivel_classificacao'].choices = [
+            ("ER-70S-6", "ER-70S-6"),
+            ]
+        form.fields['consumivel_spec'].choices = [
+            ("SFA_5-18", "SFA 5.18"),
+        ]
+        form.fields['gas_protecao'].disabled = False
+        form.fields['gas_protecao'].choices = [
+            ("ARCO2", "Ar+CO²"),
+        ]
+    elif processo_soldagem == "FCAW":
+        form.fields['consumivel_classificacao'].choices = [
+            ("E-71T-1", "E-71T-1")
+        ]
+        form.fields['consumivel_spec'].choices = [
+            ("SFA_5-20", "SFA 5.20"),
+        ]
+        form.fields['gas_protecao'].disabled = False
+        form.fields['gas_protecao'].choices = [
+            ("CO2", "CO²"),
+        ]
+    else:
+        form.fields['consumivel_classificacao'].choices = []
+        form.fields['consumivel_spec'].choices = []
+        form.fields['gas_protecao'].readonly = True
+        form.fields['gas_protecao'].choices = [
+            ("NA", "N/A"),
+        ]
+
+    return render(request, 'partials/consumivel_classificacao_field.html', {'field': form['consumivel_classificacao'], 'spec_field': form['consumivel_spec'], 'field_gprotec': form['gas_protecao']})
+
+# def update_gas_protecao(request):
+#     processo_soldagem = request.GET.get('processo_soldagem', '').strip()
+#     form = SolicitacaoCadastroSoldadorForm()
+#     print("Processo de Soldagem:", processo_soldagem)
+#
+#     # Ajustar dinamicamente `ensaio` baseado na `norma_projeto`
+#     if processo_soldagem in ["GTAW"]:
+#         form.fields['gas_protecao'].disabled = False
+#         form.fields['gas_protecao'].choices = [
+#             ("ARGONIO", "Argônio")
+#         ]
+#     elif processo_soldagem in ["GMAW"]:
+#         form.fields['gas_protecao'].disabled = False
+#         form.fields['gas_protecao'].choices = [
+#             ("ARCO2", "Ar+CO²"),
+#         ]
+#     elif processo_soldagem in ["FCAW"]:
+#         form.fields['gas_protecao'].disabled = False
+#         form.fields['gas_protecao'].choices = [
+#             ("CO2", "CO²"),
+#         ]
+#     else:
+#         form.fields['gas_protecao'].readonly = True
+#         form.fields['gas_protecao'].choices = [
+#             ("NA", "N/A"),
+#         ]
+#
+#     # Render the updated `ensaio` field
+#
+#     return render (request,'partials/gas_protec_field.html', {'field': form['gas_protecao']})

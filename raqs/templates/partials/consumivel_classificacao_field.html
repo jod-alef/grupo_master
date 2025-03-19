@@ -1,0 +1,44 @@
+<!-- raqs/templates/partials/consumivel_classificacao_field.html -->
+
+
+
+    <label class="label" for="id_consumivel_classificacao">Classificação do Consumível:</label>
+        <div class="field-body">
+            <div class="field is-narrow">
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        {{ field }}
+                    </div>
+                    {% if field.errors %}
+                        <p class="help is-danger">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    <label class="label" for="id_consumivel_spec">Especificação do Consumível:</label>
+        <div class="field-body">
+            <div class="field is-narrow">
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        {{ spec_field }}
+                    </div>
+                    {% if field.errors %}
+                        <p class="help is-danger">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    <label class="label" for="id_gas_protecao">Gás de Proteção:</label>
+        <div class="field-body">
+            <div class="field is-narrow">
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        {{ field_gprotec }}
+                    </div>
+                    {% if field.errors %}
+                        <p class="help is-danger">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>

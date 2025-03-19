@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+
+    <div class="container is-max-desktop">
+    <div class="notification is-primary">
+    <article class="media">
+            <figure class="media-left py-5 pl-4">
+                <p class="image is-128x128">
+                    <img src="{% static 'imgs/grupo_master.png' %}"/>
+                </p>
+            </figure>
+            <div class="has-text-centered py-4">
+                <h1 class="has-text-white">Sistema Master de Qualificação de Soldadores</h1>
+                <h2 class="has-text-white-05">Login</h2>
+            </div>
+        </article>
+    </div>
+</div>
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered">
+                <div class="column is-one-third">
+                    <form method="post" action="">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="notification is-danger">
+                            {% for error in form.non_field_errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="field">
+                            <label class="label">Usuário</label>
+                            <div class="control">
+                                <input class="input" type="text" name="username" placeholder="Digite seu usuário" required>
+                            </div>
+                            {% if form.username.errors %}
+                                <p class="help is-danger">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </p>
+                            {% endif %}
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Senha</label>
+                            <div class="control">
+                                <input class="input" type="password" name="password" placeholder="Digite a sua senha" required>
+                            </div>
+                            {% if form.password.errors %}
+                                <p class="help is-danger">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </p>
+                            {% endif %}
+                        </div>
+
+                        <div class="field">
+                            <div class="control">
+                                <button class="button is-primary" type="submit">Login</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

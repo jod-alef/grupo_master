@@ -6,8 +6,7 @@
     {% if form.metal_base_espessura.errors %}
         <p class="help is-danger">{{ form.metal_base_espessura.errors.0 }}</p>
     {% endif %}
-</div>
-<div class="column">
+
     <label class="label" for="id_metal_base_diametro">Diâmetro:</label>
     <div class="select">
         {{ form.metal_base_diametro }}
@@ -15,8 +14,7 @@
     {% if form.metal_base_diametro.errors %}
         <p class="help is-danger">{{ form.metal_base_diametro.errors.0 }}</p>
     {% endif %}
-</div>
-<div class="column">
+
     <label class="label" for="id_posicao_soldagem">Posição de Soldagem:</label>
     <div class="select">
         <select id="id_posicao_soldagem" name="posicao_soldagem"

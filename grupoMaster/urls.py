@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth.views import LogoutView
 from django.urls import path
 from raqs import views
 
@@ -13,9 +14,14 @@ urlpatterns = [
     path('list-soldadores/', views.list_soldadores, name='list-soldadores'),
     path('update-metal-fields/', views.update_metal_fields, name='update-metal-fields'),
     path('update-progressao/', views.update_progressao_choices, name='update-progressao'),
-    path('update-gas-protec/', views.update_gas_protecao, name='update-gas-protecao'),
+    # path('update-gas-protec/', views.update_gas_protecao, name='update-gas-protecao'),
     path('dashboard/', views.empresa_dashboard, name='empresa-dashboard'),
     path('verificar-cpf/', views.verificar_cpf_htmx, name='verificar-cpf'),
+    path('login/', views.custom_login_view, name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('solicitacoes-soldador/<int:soldador_id>/', views.solicitacoes_soldador, name='solicitacoes-soldador'),
+    path('apagar-solicitacao/<int:solicitacao_id>/', views.apagar_solicitacao, name='apagar-solicitacao'),
+    path('update-consumivel-classificacao/', views.update_consumivel_classificacao, name='update-consumivel-classificacao'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

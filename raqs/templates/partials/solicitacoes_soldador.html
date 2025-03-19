@@ -1,0 +1,28 @@
+{% load template_filter %}
+
+<div class="table-container px-6 pb-4">
+<table class="table is-fullwidth is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>Sinete</th>
+            <th>CP Nº</th>
+            <th>Solicitação</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for solicitacao in solicitacoes %}
+            <tr>
+                <td>{{ solicitacao.sinete }}</td>
+                <td>{{ solicitacao.cp_number }}</td>
+                <td>{{ solicitacao.data|date:"d-m-Y" }}</td>
+                <td>{{ soldador_status|get_item:solicitacao.id }}</td>
+                <td>
+                    <a href="{% url 'apagar-solicitacao' solicitacao.id %}" class="button is-small is-danger" hx-delete="{% url 'apagar-solicitacao' solicitacao.id %}" hx-confirm="Tem certeza que deseja apagar esta solicitação?" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>Apagar</a>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
