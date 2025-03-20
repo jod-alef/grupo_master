@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Dashboard Master - Soldadores por Empresa{% endblock %}
+
+{% block content %}
+<section class="hero is-small is-info">
+    <div class="hero-body">
+        <p class="title">Dashboard do Grupo Master</p>
+        <p class="subtitle">Soldadores agrupados por empresa e suas solicitações</p>
+    </div>
+</section>
+
+<div class="box">
+    {% for empresa_data in empresas_data %}
+        <h3 class="title is-4">{{ empresa_data.empresa.nome }}</h3> <!-- Nome da Empresa -->
+
+        {% if empresa_data.soldadores %}
+            <ul>
+                {% for soldador_data in empresa_data.soldadores %}
+                    <li class="box">
+                        <h4 class="title is-5">- {{ soldador_data.soldador.nome }} - CPF: {{ soldador_data.soldador.cpf }}</h4>
+
+                        {% if soldador_data.solicitacoes %}
+                            <ul>
+                                {% for solicitacao in soldador_data.solicitacoes %}
+                                    <li>-- Solicitação:</li>
+                                    <ul>
+                                        <li>--- Data: {{ solicitacao.data|date:"d/m/Y" }}</li>
+                                        <li>--- Norma Aplicável: {{ solicitacao.get_norma_projeto_display }}</li>
+                                    </ul>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="has-text-grey">Nenhuma solicitação para este soldador.</p>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="has-text-grey">Nenhum soldador registrado nesta empresa.</p>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endblock %}

@@ -22,6 +22,8 @@ urlpatterns = [
     path('solicitacoes-soldador/<int:soldador_id>/', views.solicitacoes_soldador, name='solicitacoes-soldador'),
     path('apagar-solicitacao/<int:solicitacao_id>/', views.apagar_solicitacao, name='apagar-solicitacao'),
     path('update-consumivel-classificacao/', views.update_consumivel_classificacao, name='update-consumivel-classificacao'),
+    path("master-dashboard/", views.master_dashboard, name="master-dashboard"),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
