@@ -12,7 +12,22 @@
 
 <div class="box">
     {% for empresa_data in empresas_data %}
-        <h3 class="title is-4">{{ empresa_data.empresa.nome }}</h3> <!-- Nome da Empresa -->
+        <h3 class="title is-4">{{ empresa_data.empresa.nome }}</h3>
+
+        {% if empresa_data.raqs_aberto %}
+            <a class="button is-success" href="{% url 'adicionar_solicitacao_raqs' empresa_data.raqs.id %}">
+              Adicionar todas as solicitações ao RAQS
+            </a>
+            <span class="tag is-info is-medium ml-3">
+              RAQS 00{{ empresa_data.raqs.id }} aberto com {{ empresa_data.raqs.solicitacoes.count }} solicitações, aguardando teste
+            </span>
+        {% else %}
+            <a class="button is-primary" href="{% url 'criar_raqs' empresa_data.empresa.id %}">
+              Criar Novo RAQS
+            </a>
+        {% endif %}
+
+<!-- Nome da Empresa -->
 
         {% if empresa_data.soldadores %}
             <ul>

@@ -216,16 +216,22 @@ def master_dashboard(request):
         empresas_data[solicitacao.empresa][solicitacao.soldador].append(solicitacao)
 
     # Convertendo o defaultdict para uma lista de dicionários, que será mais amigável para o template
-    empresas_data_list = [
-        {
-            "empresa": empresa,
-            "soldadores": [
-                {"soldador": soldador, "solicitacoes": solicitacoes}
-                for soldador, solicitacoes in soldadores.items()
-            ],
-        }
-        for empresa, soldadores in empresas_data.items()
-    ]
+    empresas_data_list = []
+    for empresa, soldadores in empresas_data.items():
+        raqs_aberto = Raqs.objects.filter(empresa=empresa, aberto=True).first()
+        empresas_data_list.append(
+            {
+                "empresa": empresa,
+                "raqs_aberto": bool(
+                    raqs_aberto
+                ),  # Flag True/False se existe RAQS aberto
+                "raqs": raqs_aberto,  # O objeto RAQS aberto atual se tiver, ou None
+                "soldadores": [
+                    {"soldador": soldador, "solicitacoes": solicitacoes}
+                    for soldador, solicitacoes in soldadores.items()
+                ],
+            }
+        )
 
     # Enviamos os dados processados para o template
     return render(
@@ -363,33 +369,52 @@ def update_consumivel_classificacao(request):
     )
 
 
-# def update_gas_protecao(request):
-#     processo_soldagem = request.GET.get('processo_soldagem', '').strip()
-#     form = SolicitacaoCadastroSoldadorForm()
-#     print("Processo de Soldagem:", processo_soldagem)
-#
-#     # Ajustar dinamicamente `ensaio` baseado na `norma_projeto`
-#     if processo_soldagem in ["GTAW"]:
-#         form.fields['gas_protecao'].disabled = False
-#         form.fields['gas_protecao'].choices = [
-#             ("ARGONIO", "Argônio")
-#         ]
-#     elif processo_soldagem in ["GMAW"]:
-#         form.fields['gas_protecao'].disabled = False
-#         form.fields['gas_protecao'].choices = [
-#             ("ARCO2", "Ar+CO²"),
-#         ]
-#     elif processo_soldagem in ["FCAW"]:
-#         form.fields['gas_protecao'].disabled = False
-#         form.fields['gas_protecao'].choices = [
-#             ("CO2", "CO²"),
-#         ]
-#     else:
-#         form.fields['gas_protecao'].readonly = True
-#         form.fields['gas_protecao'].choices = [
-#             ("NA", "N/A"),
-#         ]
-#
-#     # Render the updated `ensaio` field
-#
-#     return render (request,'partials/gas_protec_field.html', {'field': form['gas_protecao']})
+# RAQS
+
+
+def criar_raqs(request, empresa_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+    existente_aberto = Raqs.objects.filter(empresa=empresa, aberto=True).exists()
+
+    if existente_aberto:
+        messages.error(request, "Já existe um RAQS aberto para esta empresa.")
+        return redirect("master_dashboard")
+
+    novo_raqs = Raqs.objects.create(empresa=empresa, aberto=True)
+    messages.success(request, "RAQS criado com sucesso!")
+    return redirect("raqs_detail", raqs_id=novo_raqs.id)
+
+
+def adicionar_solicitacao_raqs(request, raqs_id, solicitacao_id=None):
+    raqs = get_object_or_404(Raqs, id=raqs_id, aberto=True)
+
+    if solicitacao_id:
+        solicitacao = get_object_or_404(
+            SolicitacaoCadastroSoldador, id=solicitacao_id, empresa=raqs.empresa
+        )
+        raqs.solicitacoes.add(
+            solicitacao
+        )  # supondo que exista um ManyToMany "solicitacoes"
+    else:
+        solicitacoes_empresa = SolicitacaoCadastroSoldador.objects.filter(
+            empresa=raqs.empresa
+        )
+        raqs.solicitacoes.add(*solicitacoes_empresa)
+
+    raqs.save()
+    messages.success(request, "Solicitação(ões) adicionada(s) ao RAQS com sucesso.")
+    return redirect("raqs_detail", raqs_id=raqs.id)
+
+
+def fechar_raqs(request, raqs_id):
+    raqs = get_object_or_404(Raqs, id=raqs_id)
+    raqs.aberto = False
+    raqs.save()
+    messages.success(request, "RAQS fechado com sucesso!")
+    return redirect("master_dashboard")
+
+
+def raqs_detail(request, raqs_id):
+    raqs = get_object_or_404(Raqs, id=raqs_id)
+    context = {"raqs": raqs}
+    return render(request, "raqs/raqs_detail.html", context)

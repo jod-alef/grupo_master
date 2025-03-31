@@ -5,7 +5,6 @@
     <thead>
         <tr>
             <th>Sinete</th>
-            <th>CP Nº</th>
             <th>Solicitação</th>
             <th>Status</th>
             <th>Ações</th>
@@ -15,7 +14,6 @@
         {% for solicitacao in solicitacoes %}
             <tr>
                 <td>{{ solicitacao.sinete }}</td>
-                <td>{{ solicitacao.cp_number }}</td>
                 <td>{{ solicitacao.data|date:"d-m-Y" }}</td>
                 <td>{{ soldador_status|get_item:solicitacao.id }}</td>
                 <td>

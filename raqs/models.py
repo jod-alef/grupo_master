@@ -1,15 +1,14 @@
-from datetime import datetime
-
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import User, AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 
 class Soldador(models.Model):
     nome = models.CharField(max_length=100)
     cpf = models.CharField(max_length=14)
-    # TODO: Def SINETE - Se não estiver preenchido
 
     def clean(self):
         super().clean()
@@ -27,6 +26,7 @@ class Soldador(models.Model):
 class Empresa(models.Model):
     nome = models.CharField(max_length=100)
     logo = models.ImageField(upload_to="logos")
+    n_raqs = models.IntegerField()
 
     def __str__(self):
         return f"{self.nome}"
@@ -56,12 +56,10 @@ class Operador(AbstractEmpresaUser):
         verbose_name_plural = "Operadores"
 
 
-class SolicitacaoCadastroSoldador(
-    models.Model
-):  # TODO: Perguntar sobre cabeçalho - Lógica de auto-complete
+class SolicitacaoCadastroSoldador(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
     soldador = models.ForeignKey(Soldador, on_delete=models.PROTECT)
-    sinete = models.CharField(max_length=10)  # TODO: SINETE É Ñ OBRIGATÓRIO
+    sinete = models.CharField(max_length=10)
     data = models.DateField(auto_now=True)
     eps = models.CharField(max_length=10)
     NORMA_PROJETO_CHOICES = (
@@ -123,7 +121,7 @@ class SolicitacaoCadastroSoldador(
         ("A-36", "A-36 - Chapa AC"),
         ("A-106", "A-106 - Tubo AC"),
         ("16MO3", "16MO3 - Tubo AC"),
-        ("SB536", "SB536 - Chapa Incoloy"),
+        ("B536", "B536 - Chapa Incoloy"),
         ("A-309", "A-309 - Chapa"),
         ("A-312", "A-312 - Chapa"),
     )
@@ -179,39 +177,17 @@ class SolicitacaoCadastroSoldador(
         ("DESCENDENTE", "Descendente"),
     )
     purga = models.BooleanField()
-    MODO_TRANSF_CHOICES = (
-        ("N/A", "N/A"),
-        ("CURTO_CIRCUITO", "Curto Circuito"),
-        ("GLOBULAR", "Globular"),
-        ("SPRAY", "Spray"),
-    )
-    modo_transferencia = models.CharField(
-        max_length=15, choices=MODO_TRANSF_CHOICES, null=True, blank=True
-    )
-    # Se GMAW = Curto Circuito ---- Se FCAW = Todos
+
     ENSAIO_CHOICES = (("DOBRAMENTO", "Dobramento Mecânico"), ("ULTRASSOM", "Ultrassom"))
     ensaio = models.CharField(max_length=10, choices=ENSAIO_CHOICES)
-    cp_number = models.CharField(
-        max_length=15, editable=False, blank=True
-    )  # Apenas leitura TODO: POR EMPRESA!!!! - Inserir TESTE VISUAL!!! Inserir REVALIDAÇÃO!!!
+    f_number = models.CharField(max_length=3, blank=True)
 
     class Meta:
         verbose_name = "Solicitação de Cadastro de Soldadores"
         verbose_name_plural = "Solicitações de Cadastro de Soldadores"
 
-    def save(self, *args, **kwargs):
-        # Define o CP_Number com o formato `PK-AnoAtual`
-        if not self.pk:
-            super().save(*args, **kwargs)  # Save initially to generate the pk
-            current_year = datetime.now().year
-            self.cp_number = f"M00{self.pk}-{current_year}"
-            # Save again to persist the generated cp_number
-            super().save(update_fields=["cp_number"])  # Update only the cp_number field
-        else:
-            super().save(*args, **kwargs)
-
     def __str__(self):
-        return f"{self.soldador.nome} - CP: {self.cp_number}"
+        return f"{self.soldador.nome} - CP: {self.empresa.nome}"
 
 
 class EnsaioMecanicoDobramento(models.Model):
@@ -249,9 +225,15 @@ class EnsaioUltrassom(models.Model):
 
 
 class Raqs(models.Model):
-    solicitacao = models.ForeignKey(
-        SolicitacaoCadastroSoldador, on_delete=models.PROTECT
+    n_master = models.CharField(max_length=10, editable=False)
+    n_sequencia = models.CharField(max_length=10, editable=False)
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
+    solicitacoes = models.ManyToManyField(
+        SolicitacaoCadastroSoldador, related_name="raqs"
     )
+    data = models.DateField(auto_now=True)
+    aberto = models.BooleanField(default=True)
+    cp_number = models.CharField(max_length=15, editable=False, blank=True)
     TESTE_VISUAL_CHOICES = (
         ("Aprovado", "Aprovado"),
         ("Reprovado", "Reprovado"),
@@ -282,14 +264,30 @@ class Raqs(models.Model):
             "excessiva",
         ),
     )
+    lista_de_verificacoes = models.CharField(
+        max_length=1, choices=LISTA_VERIFICA_CHOICES
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            from django.db.models import F
+
+            self.empresa.n_raqs = F("n_raqs") + 1
+            self.empresa.save()
+            self.empresa.refresh_from_db()
+            self.n_sequencia = str(self.empresa.n_raqs)
+            super().save(*args, **kwargs)
+            self.n_master = f"MAST-FORM-{self.pk}"
+            super().save(update_fields=["n_master", "n_sequencia"])
+        else:
+            super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "RAQS"
         verbose_name_plural = "RAQS"
 
-    lista_de_verificacoes = models.CharField(
-        max_length=1, choices=LISTA_VERIFICA_CHOICES
-    )
+    def __str__(self):
+        return f"RAQS - {self.empresa.nome}"
 
 
 class CQS(models.Model):
@@ -308,3 +306,59 @@ class CQS(models.Model):
     fq_metal_de_base = models.CharField(max_length=15, choices=FQ_METAL_DE_BASE_CHOICES)
     PN_METAL_DE_BASE_CHOICES = (("1", "1"), ("3", "3"), ("46", "46"), ("8", "8"))
     pn_metal_de_base = models.CharField(max_length=2, choices=PN_METAL_DE_BASE_CHOICES)
+    MODO_TRANSF_CHOICES = (
+        ("N/A", "N/A"),
+        ("CURTO_CIRCUITO", "Curto Circuito"),
+        ("GLOBULAR", "Globular"),
+        ("SPRAY", "Spray"),
+    )
+    modo_transferencia = models.CharField(
+        max_length=15, choices=MODO_TRANSF_CHOICES, null=True, blank=True
+    )
+
+
+@receiver(pre_save, sender=SolicitacaoCadastroSoldador)
+def set_f_number(sender, instance, **kwargs):
+    # Mapeamento de consumível para f_number
+    f_number_mapping = {
+        "E6010": "3",
+        "E-6010": "3",
+        "E7018": "4",
+        "E-7018": "4",
+        "ER-70S3": "6",
+        "ER-70S-3": "6",
+        "ER-70S6": "6",
+        "ER-70S-6": "6",
+        "E-71T1": "6",
+        "E-71T-1": "6",
+        "ER-309L": "6",
+        "ER-308L": "6",
+        "ER-NiCrFe3": "43",
+        "E-NiCrFe3": "43",
+        "E-309L": "5",
+        "ER-NiCrMo3": "43",
+        "E-NiCrMo3": "43",
+    }
+
+    # Define o f_number com base no consumível escolhido
+    classificacao = instance.consumivel_classificacao
+    if classificacao in f_number_mapping:
+        instance.f_number = f_number_mapping[classificacao]
+
+
+@receiver(pre_save, sender=CQS)
+def set_fq_consumivel(sender, instance, **kwargs):
+    # Mapeamento de f_number para fq_consumivel
+    f_number_to_fq = {
+        "3": "1-3",
+        "4": "1-4",
+        "6": "6",
+        "43": "34-41-46",
+        "5": "1-5",
+    }
+
+    # Auto-preencher fq_consumivel com base no f_number da solicitação
+    if hasattr(instance, "solicitacao") and instance.solicitacao:
+        f_number = instance.solicitacao.f_number
+        if f_number in f_number_to_fq:
+            instance.fq_consumivel = f_number_to_fq[f_number]

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Detalhes RAQS {{ raqs.id }}{% endblock %}
+
+{% block content %}
+    <div class="box">
+        <h2 class="title">Detalhes do RAQS: {{ raqs.id }}</h2>
+        <p><strong>Empresa:</strong> {{ raqs.empresa.nome }}</p>
+        <p><strong>Solicitações relacionadas:</strong> {{ raqs.solicitacoes.count }}</p>
+
+        <ul>
+            {% for solicitacao in raqs.solicitacoes.all %}
+                <li>{{ solicitacao }}</li>
+            {% empty %}
+                <li>Não há solicitações anexadas.</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
