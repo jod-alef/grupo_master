@@ -2,34 +2,106 @@
 {% load static %}
 {% block title %}Dashboard Master - Soldadores por Empresa{% endblock %}
 
+{% block extra_head %}
+<style>
+    /* Estilos para o header fixo */
+    .header-fixo {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        background: white !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        padding: 1rem !important;
+        border-bottom: 1px solid #e8e8e8 !important;
+    }
+
+    /* Responsividade */
+    @media screen and (max-width: 768px) {
+        .header-fixo {
+            padding: 0.75rem !important;
+        }
+        
+        .header-fixo .title {
+            font-size: 1.5rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="hero is-small is-info">
-    <div class="hero-body">
-        <p class="title">Dashboard do Grupo Master</p>
-        <p class="subtitle">Soldadores agrupados por empresa e suas solicitações</p>
+    <div style="padding-top: 120px; padding-bottom: 40px;">
+    <!-- Header fixo -->
+    <div class="header-fixo" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 1000 !important; background: white !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important; padding: 1rem !important; border-bottom: 1px solid #e8e8e8 !important;">
+        <div class="container">
+            <div class="columns is-vcentered">
+                <div class="column is-narrow" style="padding-right: 2rem;">
+                    <img src="/media/logos/grupo_master.png" alt="Grupo Master" style="height: 60px; max-width: 120px;">
+                </div>
+                <div class="column">
+                    <h1 class="title is-3 mb-2" style="color: #4D6F54 !important;">Dashboard do Grupo Master</h1>
+                    <p class="subtitle is-6" style="color: #666;">Soldadores agrupados por empresa e suas solicitações</p>
+                </div>
+            </div>
+        </div>
     </div>
-</section>
 
 <div class="box">
     {% for empresa_data in empresas_data %}
-        <h3 class="title is-4">{{ empresa_data.empresa.nome }}</h3>
+        <h3 class="title is-4" style="color: #4D6F54 !important;">{{ empresa_data.empresa.nome }}</h3>
 
         {% if empresa_data.raqs_aberto %}
-            <a class="button is-success" href="{% url 'adicionar_solicitacao_raqs' empresa_data.raqs.id %}">
-              Adicionar todas as solicitações ao RAQS
+            <a class="button" href="{% url 'raqs_detail' empresa_data.raqs.id %}" style="background-color: #4D6F54 !important; border-color: #4D6F54 !important; color: white !important;">
+              Ver RAQS
             </a>
-            <span class="tag is-info is-medium ml-3">
+            <span class="tag is-medium ml-3" style="background-color: #4D6F54 !important; color: white !important;">
               RAQS 00{{ empresa_data.raqs.id }} aberto com {{ empresa_data.raqs.solicitacoes.count }} solicitações, aguardando teste
             </span>
-        {% else %}
-            <a class="button is-primary" href="{% url 'criar_raqs' empresa_data.empresa.id %}">
+        {% elif empresa_data.tem_soldadores_para_raqs %}
+            <a class="button" href="{% url 'criar_raqs' empresa_data.empresa.id %}" style="background-color: #4D6F54 !important; border-color: #4D6F54 !important; color: white !important;">
               Criar Novo RAQS
             </a>
+        {% else %}
+            <span class="tag is-light" style="color: #666;">
+              <i class="fas fa-info-circle mr-2"></i>
+              Nenhum soldador disponível para qualificação
+            </span>
         {% endif %}
 
-<!-- Nome da Empresa -->
+<!-- Conteúdo da Empresa -->
 
-        {% if empresa_data.soldadores %}
+        {% if empresa_data.tem_raqs_fechados %}
+            <!-- Mostrar RAQS fechados -->
+            <div class="content">
+                <h5 class="title is-6 has-text-success">
+                    <span class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </span>
+                    RAQS Fechados - Testes Concluídos
+                </h5>
+                {% for raqs_fechado in empresa_data.raqs_fechados %}
+                    <div class="box has-background-success-light">
+                        <div class="columns is-vcentered">
+                            <div class="column">
+                                <p><strong>RAQS #{{ raqs_fechado.id }}</strong> - {{ raqs_fechado.n_master }}</p>
+                                <p><small>Data de Fechamento: {{ raqs_fechado.data|date:"d/m/Y" }}</small></p>
+                                <p><small>{{ raqs_fechado.solicitacoes.count }} solicitação{{ raqs_fechado.solicitacoes.count|pluralize:"ões" }} processada{{ raqs_fechado.solicitacoes.count|pluralize:"s" }}</small></p>
+                            </div>
+                            <div class="column is-narrow">
+                                <a href="{% url 'raqs_detail' raqs_fechado.id %}" class="button is-success">
+                                    <span class="icon">
+                                        <i class="fas fa-eye"></i>
+                                    </span>
+                                    <span>Ver RAQS</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% elif empresa_data.soldadores %}
+            <!-- Mostrar solicitações individuais (quando não há RAQS fechados) -->
             <ul>
                 {% for soldador_data in empresa_data.soldadores %}
                     <li class="box">
@@ -55,5 +127,6 @@
             <p class="has-text-grey">Nenhum soldador registrado nesta empresa.</p>
         {% endif %}
     {% endfor %}
+</div>
 </div>
 {% endblock %}

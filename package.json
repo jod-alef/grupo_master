@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "bulma": "^1.0.2",
+    "sass": "^1.83.0"
+  },
+    "scripts": {
+    "build-bulma": "sass --load-path=node_modules grupo-master.scss ./static/styles/grupo-master.css",
+    "start": "npm run build-bulma -- --watch"
+  }
+}

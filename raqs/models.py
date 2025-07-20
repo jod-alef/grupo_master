@@ -195,11 +195,8 @@ class EnsaioMecanicoDobramento(models.Model):
         SolicitacaoCadastroSoldador, on_delete=models.PROTECT
     )
     data_teste = models.DateField(auto_now=True)
-    fotos_amostra_1 = models.FileField(upload_to="media/")
-    fotos_amostra_2 = models.FileField(upload_to="media/")
-    fotos_amostra_3 = models.FileField(upload_to="media/")
-    fotos_amostra_4 = models.FileField(upload_to="media/")
-    aprovado = models.BooleanField()
+    aprovado = models.BooleanField(default=False)
+    realizado = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Ensaio Mecânico"
@@ -214,7 +211,8 @@ class EnsaioUltrassom(models.Model):
         SolicitacaoCadastroSoldador, on_delete=models.PROTECT
     )
     data_teste = models.DateField(auto_now=True)
-    aprovado = models.BooleanField()
+    aprovado = models.BooleanField(default=False)
+    realizado = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Ensaio Ultrassom"
@@ -224,22 +222,16 @@ class EnsaioUltrassom(models.Model):
         return f"Ensaio de {self.solicitacao.soldador.nome} em {self.data_teste}"
 
 
-class Raqs(models.Model):
-    n_master = models.CharField(max_length=10, editable=False)
-    n_sequencia = models.CharField(max_length=10, editable=False)
-    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
-    solicitacoes = models.ManyToManyField(
-        SolicitacaoCadastroSoldador, related_name="raqs"
+class TesteVisual(models.Model):
+    solicitacao = models.OneToOneField(
+        SolicitacaoCadastroSoldador, on_delete=models.PROTECT
     )
-    data = models.DateField(auto_now=True)
-    aberto = models.BooleanField(default=True)
-    cp_number = models.CharField(max_length=15, editable=False, blank=True)
     TESTE_VISUAL_CHOICES = (
         ("Aprovado", "Aprovado"),
         ("Reprovado", "Reprovado"),
         ("N/A", "N/A"),
     )
-    teste_visual = models.CharField(max_length=10, choices=TESTE_VISUAL_CHOICES)
+    resultado = models.CharField(max_length=10, choices=TESTE_VISUAL_CHOICES, blank=True)
     LISTA_VERIFICA_CHOICES = (
         (
             "1",
@@ -264,9 +256,29 @@ class Raqs(models.Model):
             "excessiva",
         ),
     )
-    lista_de_verificacoes = models.CharField(
-        max_length=1, choices=LISTA_VERIFICA_CHOICES
+    motivos_reprovacao = models.CharField(
+        max_length=200, blank=True, help_text="Motivos da reprovação separados por vírgula"
     )
+    data_teste = models.DateField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Teste Visual"
+        verbose_name_plural = "Testes Visuais"
+
+    def __str__(self):
+        return f"Teste Visual - {self.solicitacao.soldador.nome}"
+
+
+class Raqs(models.Model):
+    n_master = models.CharField(max_length=10, editable=False)
+    n_sequencia = models.CharField(max_length=10, editable=False)
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
+    solicitacoes = models.ManyToManyField(
+        SolicitacaoCadastroSoldador, related_name="raqs"
+    )
+    data = models.DateField(auto_now=True)
+    aberto = models.BooleanField(default=True)
+    cp_number = models.CharField(max_length=15, editable=False, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.pk:

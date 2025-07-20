@@ -3,6 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db import models
 from raqs.forms import SoldadorForm, SolicitacaoCadastroSoldadorForm
 from raqs.models import *
 from django.contrib.auth.decorators import user_passes_test
@@ -162,18 +163,55 @@ def solicitacoes_soldador(request, soldador_id):
     )
 
     soldador_status = {}
+    solicitacoes_abertas = []
+    solicitacoes_finalizadas = []
+    
     for solicitacao in solicitacoes:
         status = "Aguardando Teste"
-        if EnsaioMecanicoDobramento.objects.filter(
-            solicitacao=solicitacao, aprovado=True
-        ).exists():
-            status = "Aprovado - DM"
-        elif EnsaioUltrassom.objects.filter(
-            solicitacao=solicitacao, aprovado=True
-        ).exists():
-            status = "Aprovado - UT"
+        
+        # Verificar se há teste visual
+        try:
+            teste_visual = TesteVisual.objects.get(solicitacao=solicitacao)
+            if teste_visual.resultado == "Reprovado":
+                status = "Reprovado Teste Visual"
+            elif teste_visual.resultado == "Aprovado":
+                # Se aprovado no teste visual, verificar ensaios
+                if solicitacao.ensaio == "DOBRAMENTO":
+                    if EnsaioMecanicoDobramento.objects.filter(
+                        solicitacao=solicitacao, aprovado=True, realizado=True
+                    ).exists():
+                        status = "Aprovado - DM"
+                    elif EnsaioMecanicoDobramento.objects.filter(
+                        solicitacao=solicitacao, aprovado=False, realizado=True
+                    ).exists():
+                        status = "Reprovado - DM"
+                elif solicitacao.ensaio == "ULTRASSOM":
+                    if EnsaioUltrassom.objects.filter(
+                        solicitacao=solicitacao, aprovado=True, realizado=True
+                    ).exists():
+                        status = "Aprovado - UT"
+                    elif EnsaioUltrassom.objects.filter(
+                        solicitacao=solicitacao, aprovado=False, realizado=True
+                    ).exists():
+                        status = "Reprovado - UT"
+        except TesteVisual.DoesNotExist:
+            # Se não há teste visual, verificar apenas ensaios (lógica antiga)
+            if EnsaioMecanicoDobramento.objects.filter(
+                solicitacao=solicitacao, aprovado=True
+            ).exists():
+                status = "Aprovado - DM"
+            elif EnsaioUltrassom.objects.filter(
+                solicitacao=solicitacao, aprovado=True
+            ).exists():
+                status = "Aprovado - UT"
 
         soldador_status[solicitacao.id] = status
+        
+        # Separar solicitações por status
+        if "Aguardando" in status:
+            solicitacoes_abertas.append(solicitacao)
+        elif "Aprovado" in status or "Reprovado" in status:
+            solicitacoes_finalizadas.append(solicitacao)
 
     return render(
         request,
@@ -181,6 +219,8 @@ def solicitacoes_soldador(request, soldador_id):
         {
             "soldador": soldador,
             "solicitacoes": solicitacoes,
+            "solicitacoes_abertas": solicitacoes_abertas,
+            "solicitacoes_finalizadas": solicitacoes_finalizadas,
             "soldador_status": soldador_status,
             "empresa": empresa,
         },
@@ -200,38 +240,63 @@ def is_grupo_master(user):
 def master_dashboard(request):
     """
     Cria o Dashboard baseado em solicitações, agrupando os dados por empresa e por soldador.
+    Mostra apenas solicitações que não estão em RAQS fechados.
     """
     # Inicializamos uma estrutura de dados para juntar as informações
     empresas_data = defaultdict(
         lambda: defaultdict(list)
     )  # {empresa: {soldador: [solicitacoes]}}
 
-    # Obtemos todas as solicitações do modelo
-    solicitacoes = SolicitacaoCadastroSoldador.objects.select_related(
-        "empresa", "soldador"
-    )
-
-    # Iteramos sobre as solicitações para organizar os dados
-    for solicitacao in solicitacoes:
-        empresas_data[solicitacao.empresa][solicitacao.soldador].append(solicitacao)
-
-    # Convertendo o defaultdict para uma lista de dicionários, que será mais amigável para o template
+    # Obter todas as empresas
+    empresas = Empresa.objects.all()
+    
     empresas_data_list = []
-    for empresa, soldadores in empresas_data.items():
+    for empresa in empresas:
+        # Verificar se há RAQS aberto para esta empresa
         raqs_aberto = Raqs.objects.filter(empresa=empresa, aberto=True).first()
-        empresas_data_list.append(
-            {
+        
+        # Verificar se há RAQS fechados para esta empresa
+        raqs_fechados = Raqs.objects.filter(empresa=empresa, aberto=False).order_by('-data')
+        
+        # Filtrar solicitações que não estão em nenhum RAQS (disponíveis para criação de RAQS)
+        solicitacoes_disponiveis = SolicitacaoCadastroSoldador.objects.filter(
+            empresa=empresa,
+            raqs__isnull=True
+        ).select_related("soldador")
+        
+        # Organizar por soldador
+        soldadores_dict = defaultdict(list)
+        for solicitacao in solicitacoes_disponiveis:
+            soldadores_dict[solicitacao.soldador].append(solicitacao)
+        
+        # Verificar se há soldadores com solicitações disponíveis para RAQS
+        tem_soldadores_para_raqs = bool(soldadores_dict)
+        
+        # Se há RAQS fechado, mostrar os RAQS em vez das solicitações individuais
+        if raqs_fechados.exists() and not raqs_aberto:
+            empresas_data_list.append({
                 "empresa": empresa,
-                "raqs_aberto": bool(
-                    raqs_aberto
-                ),  # Flag True/False se existe RAQS aberto
-                "raqs": raqs_aberto,  # O objeto RAQS aberto atual se tiver, ou None
+                "raqs_aberto": False,
+                "raqs": None,
+                "raqs_fechados": raqs_fechados,
+                "soldadores": [],  # Não mostrar soldadores individuais se há RAQS fechado
+                "tem_raqs_fechados": True,
+                "tem_soldadores_para_raqs": tem_soldadores_para_raqs,
+            })
+        else:
+            # Mostrar solicitações individuais apenas se não há RAQS fechados ou há RAQS aberto
+            empresas_data_list.append({
+                "empresa": empresa,
+                "raqs_aberto": bool(raqs_aberto),
+                "raqs": raqs_aberto,
+                "raqs_fechados": [],
                 "soldadores": [
                     {"soldador": soldador, "solicitacoes": solicitacoes}
-                    for soldador, solicitacoes in soldadores.items()
-                ],
-            }
-        )
+                    for soldador, solicitacoes in soldadores_dict.items()
+                ] if soldadores_dict else [],
+                "tem_raqs_fechados": False,
+                "tem_soldadores_para_raqs": tem_soldadores_para_raqs,
+            })
 
     # Enviamos os dados processados para o template
     return render(
@@ -246,6 +311,9 @@ def empresa_dashboard(request):
         solicitacaocadastrosoldador__empresa=empresa
     ).distinct()
     solicitacoes = SolicitacaoCadastroSoldador.objects.filter(empresa=empresa)
+    
+    # Buscar RAQS fechados da empresa
+    raqs_fechados = Raqs.objects.filter(empresa=empresa, aberto=False).order_by('-data')
 
     return render(
         request,
@@ -254,6 +322,7 @@ def empresa_dashboard(request):
             "empresa": empresa,
             "soldadores": soldadores,
             "solicitacoes": solicitacoes,
+            "raqs_fechados": raqs_fechados,
         },
     )
 
@@ -380,8 +449,24 @@ def criar_raqs(request, empresa_id):
         messages.error(request, "Já existe um RAQS aberto para esta empresa.")
         return redirect("master_dashboard")
 
+    # Buscar solicitações disponíveis (que não estão em nenhum RAQS)
+    solicitacoes_disponiveis = SolicitacaoCadastroSoldador.objects.filter(
+        empresa=empresa,
+        raqs__isnull=True
+    )
+    
+    if not solicitacoes_disponiveis.exists():
+        messages.error(request, "Não há solicitações disponíveis para criar um RAQS para esta empresa.")
+        return redirect("master_dashboard")
+
+    # Criar o novo RAQS
     novo_raqs = Raqs.objects.create(empresa=empresa, aberto=True)
-    messages.success(request, "RAQS criado com sucesso!")
+    
+    # Adicionar automaticamente todas as solicitações disponíveis
+    novo_raqs.solicitacoes.add(*solicitacoes_disponiveis)
+    novo_raqs.save()
+    
+    messages.success(request, f"RAQS criado com sucesso! {solicitacoes_disponiveis.count()} solicitações adicionadas automaticamente.")
     return redirect("raqs_detail", raqs_id=novo_raqs.id)
 
 
@@ -416,5 +501,117 @@ def fechar_raqs(request, raqs_id):
 
 def raqs_detail(request, raqs_id):
     raqs = get_object_or_404(Raqs, id=raqs_id)
-    context = {"raqs": raqs}
+    if request.method == "POST":
+        if not raqs.aberto:
+            messages.error(request, "Este RAQS está fechado e não pode ser modificado.")
+            return redirect("raqs_detail", raqs_id=raqs.id)
+        
+        for solicitacao in raqs.solicitacoes.all():
+            # Teste Visual (agora individual por solicitação)
+            teste_visual_key = f"teste_visual_{solicitacao.id}"
+            if teste_visual_key in request.POST:
+                teste_visual, _ = TesteVisual.objects.get_or_create(solicitacao=solicitacao)
+                teste_visual.resultado = request.POST[teste_visual_key]
+                
+                # Processar motivos de reprovação se o teste visual foi reprovado
+                motivos_key = f"motivos_reprovacao_{solicitacao.id}"
+                if request.POST[teste_visual_key] == "Reprovado" and motivos_key in request.POST:
+                    teste_visual.motivos_reprovacao = request.POST[motivos_key]
+                elif request.POST[teste_visual_key] == "Aprovado":
+                    teste_visual.motivos_reprovacao = ""  # Limpar motivos se aprovado
+                
+                teste_visual.save()
+                
+                # Se teste visual reprovado, marcar ensaio como "Não Realizado" automaticamente
+                if request.POST[teste_visual_key] == "Reprovado":
+                    if solicitacao.ensaio == "DOBRAMENTO":
+                        ensaio, _ = EnsaioMecanicoDobramento.objects.get_or_create(solicitacao=solicitacao)
+                        ensaio.realizado = False
+                        ensaio.aprovado = False
+                        ensaio.save()
+                    elif solicitacao.ensaio == "ULTRASSOM":
+                        ensaio, _ = EnsaioUltrassom.objects.get_or_create(solicitacao=solicitacao)
+                        ensaio.realizado = False
+                        ensaio.aprovado = False
+                        ensaio.save()
+
+            # Ensaio Mecânico Dobramento (apenas se teste visual não for reprovado)
+            if solicitacao.ensaio == "DOBRAMENTO":
+                aprovado_key = f"dobramento_aprovado_{solicitacao.id}"
+                if aprovado_key in request.POST and request.POST[aprovado_key]:
+                    ensaio, _ = EnsaioMecanicoDobramento.objects.get_or_create(solicitacao=solicitacao)
+                    resultado = request.POST[aprovado_key]
+                    if resultado == "Nao_Realizado":
+                        ensaio.realizado = False
+                        ensaio.aprovado = False
+                    else:
+                        ensaio.realizado = True
+                        ensaio.aprovado = resultado == "Aprovado"
+                    ensaio.save()
+
+            # Ensaio Ultrassom (apenas se teste visual não for reprovado)
+            if solicitacao.ensaio == "ULTRASSOM":
+                aprovado_key = f"ultrassom_aprovado_{solicitacao.id}"
+                if aprovado_key in request.POST and request.POST[aprovado_key]:
+                    ensaio, _ = EnsaioUltrassom.objects.get_or_create(solicitacao=solicitacao)
+                    resultado = request.POST[aprovado_key]
+                    if resultado == "Nao_Realizado":
+                        ensaio.realizado = False
+                        ensaio.aprovado = False
+                    else:
+                        ensaio.realizado = True
+                        ensaio.aprovado = resultado == "Aprovado"
+                    ensaio.save()
+        messages.success(request, "Alterações salvas com sucesso!")
+        return redirect("raqs_detail", raqs_id=raqs.id)
+
+    # Group solicitações by soldador
+    soldadores_dict = {}
+    for solicitacao in raqs.solicitacoes.all().select_related('soldador').order_by('soldador__nome'):
+        if solicitacao.soldador not in soldadores_dict:
+            soldadores_dict[solicitacao.soldador] = []
+        soldadores_dict[solicitacao.soldador].append(solicitacao)
+
+    # Convert to list of tuples (soldador, solicitações) and sort by soldador name
+    soldadores_list = sorted(soldadores_dict.items(), key=lambda x: x[0].nome)
+
+    # Get all teste visual for solicitações in this RAQS
+    testes_visuais = {}
+    for solicitacao in raqs.solicitacoes.all():
+        try:
+            teste_visual = TesteVisual.objects.get(solicitacao=solicitacao)
+            testes_visuais[solicitacao.id] = teste_visual
+        except TesteVisual.DoesNotExist:
+            testes_visuais[solicitacao.id] = None
+
+    # Verificar se todos os testes foram preenchidos
+    todos_testes_completos = True
+    for solicitacao in raqs.solicitacoes.all():
+        # Verificar teste visual
+        teste_visual = testes_visuais.get(solicitacao.id)
+        if not teste_visual or not teste_visual.resultado:
+            todos_testes_completos = False
+            break
+        
+        # Verificar ensaio específico
+        if solicitacao.ensaio == 'DOBRAMENTO':
+            ensaio_dobramento = EnsaioMecanicoDobramento.objects.filter(solicitacao=solicitacao).first()
+            # Ensaio deve existir (indicando que foi processado no template)
+            if not ensaio_dobramento:
+                todos_testes_completos = False
+                break
+        elif solicitacao.ensaio == 'ULTRASSOM':
+            ensaio_ultrassom = EnsaioUltrassom.objects.filter(solicitacao=solicitacao).first()
+            # Ensaio deve existir (indicando que foi processado no template)
+            if not ensaio_ultrassom:
+                todos_testes_completos = False
+                break
+
+    context = {
+        "raqs": raqs,
+        "soldadores_list": soldadores_list,
+        "lista_verificacoes_choices": TesteVisual.LISTA_VERIFICA_CHOICES,
+        "testes_visuais": testes_visuais,
+        "todos_testes_completos": todos_testes_completos,
+    }
     return render(request, "raqs/raqs_detail.html", context)

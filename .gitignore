@@ -4,10 +4,58 @@
 *.pyc
 __pycache__
 db.sqlite3
+db.sqlite3-journal
 
+# Django specific
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Django migrations (keep these in version control)
+# Only uncomment the lines below if you specifically want to ignore migrations
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Django static files (uncomment if you want to ignore collected static files)
+# staticfiles/
+
+# Django media files
+media/
+uploads/
+
+# Django local settings
+local_settings.py
+settings_local.py
+
+# Django cache
+.cache/
+*.cache
+
+# Django templates cache
+templates_cache/
 
 # Backup files #
 *.bak
+*.backup
+*.old
+*.orig
+*.tmp
+*.temp
 
 # If you are using PyCharm #
 # User-specific stuff
@@ -107,6 +155,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+bin/
+include/
+lib/
+lib64/
+pyvenv.cfg
 
 # mkdocs documentation
 /site
@@ -138,3 +191,118 @@ GitHub.sublime-settings
 !.vscode/launch.json
 !.vscode/extensions.json
 .history
+
+# Node.js (if using any frontend tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local configuration files
+config.local.py
+settings.local.py
+local.py
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Secret files
+secrets.json
+secret_key.txt

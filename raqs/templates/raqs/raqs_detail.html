@@ -1,18 +1,501 @@
 {% extends 'base.html' %}
+{% load template_filter %}
 {% block title %}Detalhes RAQS {{ raqs.id }}{% endblock %}
 
-{% block content %}
-    <div class="box">
-        <h2 class="title">Detalhes do RAQS: {{ raqs.id }}</h2>
-        <p><strong>Empresa:</strong> {{ raqs.empresa.nome }}</p>
-        <p><strong>Solicitações relacionadas:</strong> {{ raqs.solicitacoes.count }}</p>
+{% block extra_head %}
+<style>
+    /* Estilos para o header fixo */
+    .header-fixo {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        background: white !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        padding: 1rem !important;
+        border-bottom: 1px solid #e8e8e8 !important;
+    }
 
-        <ul>
-            {% for solicitacao in raqs.solicitacoes.all %}
-                <li>{{ solicitacao }}</li>
-            {% empty %}
-                <li>Não há solicitações anexadas.</li>
-            {% endfor %}
-        </ul>
+    /* Estilos para o botão fixo */
+    .btn-salvar-fixo {
+        transition: all 0.3s ease !important;
+    }
+
+    .btn-salvar-fixo:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.4) !important;
+    }
+
+    /* Responsividade */
+    @media screen and (max-width: 768px) {
+        .btn-salvar-fixo {
+            font-size: 0.9rem !important;
+        }
+        
+        .header-fixo {
+            padding: 0.75rem !important;
+        }
+        
+        .header-fixo .title {
+            font-size: 1.5rem !important;
+        }
+        
+        /* Botões responsivos */
+        .botoes-acao-fixos {
+            bottom: 15px !important;
+            right: 15px !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+        }
+        
+        .botoes-acao-fixos .button {
+            width: 100% !important;
+            font-size: 0.9rem !important;
+        }
+    }
+
+    /* Suavizar transições dos campos desabilitados */
+    .resultado-ensaio {
+        transition: opacity 0.3s ease !important;
+    }
+    
+    /* Ordem dos botões sempre consistente */
+    .btn-salvar-ordem {
+        order: 1;
+    }
+    
+    .btn-fechar-ordem {
+        order: 2;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div style="padding-top: 120px; padding-bottom: 80px;">
+    <!-- Header fixo -->
+    <div class="header-fixo" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 1000 !important; background: white !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important; padding: 1rem !important; border-bottom: 1px solid #e8e8e8 !important;">
+        <div class="container">
+            <div class="columns is-vcentered">
+                <div class="column is-narrow" style="padding-right: 2rem;">
+                    <img src="/media/logos/grupo_master.png" alt="Grupo Master" style="height: 60px; max-width: 120px;">
+                </div>
+                <div class="column">
+                    <h2 class="title is-3 mb-2" style="color: #4D6F54 !important;">
+                        Detalhes do RAQS: {{ raqs.id }}
+                        {% if not raqs.aberto %}
+                            <span class="tag is-danger is-medium ml-3">
+                                <span class="icon">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <span>FECHADO</span>
+                            </span>
+                        {% endif %}
+                    </h2>
+                    <div class="columns is-mobile">
+                        <div class="column">
+                            <p><strong>Empresa:</strong> {{ raqs.empresa.nome }}</p>
+                        </div>
+                        <div class="column">
+                            <p><strong>Total de Solicitações:</strong> {{ raqs.solicitacoes.count }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-narrow">
+                    <a href="{% url 'master_dashboard' %}" class="button" style="background-color: #4D6F54 !important; border-color: #4D6F54 !important; color: white !important;">
+                        <span class="icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <div class="box">
+    
+    {% if todos_testes_completos and raqs.aberto %}
+        <div class="notification is-success is-light mb-5">
+            <span class="icon">
+                <i class="fas fa-check-circle"></i>
+            </span>
+            <strong>Todos os testes foram preenchidos!</strong> Agora você pode fechar este RAQS.
+        </div>
+    {% endif %}
+    
+    <!-- Formulário único para todo o RAQS -->
+    <form method="post" action="" id="raqs-form"{% if not raqs.aberto %} style="pointer-events: none; opacity: 0.6;"{% endif %}>
+        {% csrf_token %}
+        {% if not raqs.aberto %}
+            <div class="notification is-warning is-light mb-5">
+                <span class="icon">
+                    <i class="fas fa-lock"></i>
+                </span>
+                <strong>Este RAQS está fechado.</strong> Os dados não podem mais ser editados.
+            </div>
+        {% endif %}
+        
+        {% for soldador, solicitacoes in soldadores_list %}
+        <div class="box has-background-light mb-5">
+            <h3 class="title is-4 has-text-primary">{{ soldador.nome }} - CPF: {{ soldador.cpf }}</h3>
+            <div class="columns is-multiline">
+                {% for solicitacao in solicitacoes %}
+                    <div class="column is-12">
+                        <div class="card mb-4">
+                            <header class="card-header">
+                                <p class="card-header-title">
+                                    Solicitação #{{ solicitacao.id }} - {{ solicitacao.get_norma_projeto_display }} - {{ solicitacao.get_ensaio_display }}
+                                </p>
+                            </header>
+                            <div class="card-content">
+                                <div class="columns">
+                                    <div class="column is-4">
+                                        <p><strong>Data:</strong> {{ solicitacao.data|date:"d/m/Y" }}</p>
+                                        <p><strong>Processo:</strong> {{ solicitacao.get_processo_soldagem_display }}</p>
+                                        <p><strong>EPS:</strong> {{ solicitacao.eps }}</p>
+                                        <p><strong>Sinete:</strong> {{ solicitacao.sinete }}</p>
+                                    </div>
+                                    <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">Teste Visual</label>
+                                                <div class="control">
+                                                    <div class="select">
+                                                                                                {% with teste_visual=testes_visuais|get_item:solicitacao.id %}
+                                            <select name="teste_visual_{{ solicitacao.id }}" id="teste_visual_{{ solicitacao.id }}" onchange="handleTesteVisualChange(this, {{ solicitacao.id }})">
+                                                <option value="">Selecione...</option>
+                                                <option value="Aprovado" {% if teste_visual and teste_visual.resultado == 'Aprovado' %}selected{% endif %}>Aprovado</option>
+                                                <option value="Reprovado" {% if teste_visual and teste_visual.resultado == 'Reprovado' %}selected{% endif %}>Reprovado</option>
+                                            </select>
+                                        {% endwith %}
+                                                    </div>
+                                                </div>
+                                                {% with teste_visual=testes_visuais|get_item:solicitacao.id %}
+                                                    {% if teste_visual and teste_visual.resultado == 'Reprovado' and teste_visual.motivos_reprovacao %}
+                                                        <div class="notification is-warning is-light mt-2">
+                                                            <p class="is-size-7"><strong>Motivos:</strong> 
+                                                            {% for motivo_id in teste_visual.motivos_reprovacao|split:"," %}
+                                                                {% for choice in lista_verificacoes_choices %}
+                                                                    {% if choice.0 == motivo_id %}{{ choice.1 }}{% if not forloop.last %}, {% endif %}{% endif %}
+                                                                {% endfor %}
+                                                            {% endfor %}
+                                                            </p>
+                                                            <button type="button" class="button is-small is-warning" onclick="editMotivos({{ solicitacao.id }})" data-motivos="{{ teste_visual.motivos_reprovacao }}">Editar Motivos</button>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </div>
+                                            {% if solicitacao.ensaio == 'DOBRAMENTO' %}
+                                                {% with ensaio=solicitacao.ensaiomecanicodobramento_set.first %}
+                                                    <div class="field">
+                                                        <label class="label">Resultado - Dobramento Mecânico</label>
+                                                        <div class="control">
+                                                            <div class="select">
+                                                                <select name="dobramento_aprovado_{{ solicitacao.id }}" id="dobramento_aprovado_{{ solicitacao.id }}" class="resultado-ensaio">
+                                                                    <option value="">Selecione...</option>
+                                                                    <option value="Aprovado" {% if ensaio and ensaio.aprovado and ensaio.realizado %}selected{% endif %}>Aprovado</option>
+                                                                    <option value="Reprovado" {% if ensaio and not ensaio.aprovado and ensaio.realizado %}selected{% endif %}>Reprovado</option>
+                                                                    <option value="Nao_Realizado" {% if ensaio and not ensaio.realizado %}selected{% endif %}>Não Realizado</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {% endwith %}
+                                            {% elif solicitacao.ensaio == 'ULTRASSOM' %}
+                                                {% with ensaio=solicitacao.ensaioultrassom_set.first %}
+                                                    <div class="field">
+                                                        <label class="label">Resultado - Ultrassom</label>
+                                                        <div class="control">
+                                                            <div class="select">
+                                                                <select name="ultrassom_aprovado_{{ solicitacao.id }}" id="ultrassom_aprovado_{{ solicitacao.id }}" class="resultado-ensaio">
+                                                                    <option value="">Selecione...</option>
+                                                                    <option value="Aprovado" {% if ensaio and ensaio.aprovado and ensaio.realizado %}selected{% endif %}>Aprovado</option>
+                                                                    <option value="Reprovado" {% if ensaio and not ensaio.aprovado and ensaio.realizado %}selected{% endif %}>Reprovado</option>
+                                                                    <option value="Nao_Realizado" {% if ensaio and not ensaio.realizado %}selected{% endif %}>Não Realizado</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {% endwith %}
+                                            {% endif %}
+                                    </div>
+                                    <div class="column is-4">
+                                        <p><strong>Metal Base:</strong> {{ solicitacao.get_metal_base_spec_display }}</p>
+                                        {% if solicitacao.metal_base_espessura %}
+                                            <p><strong>Espessura:</strong> {{ solicitacao.metal_base_espessura }}</p>
+                                        {% endif %}
+                                        {% if solicitacao.metal_base_diametro %}
+                                            <p><strong>Diâmetro:</strong> {{ solicitacao.metal_base_diametro }}</p>
+                                        {% endif %}
+                                        <p><strong>Posição:</strong> {{ solicitacao.get_posicao_soldagem_display }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+            {% empty %}
+        <p class="has-text-grey">Não há solicitações anexadas.</p>
+    {% endfor %}
+    
+    </form>
+
+    <!-- Botões de ação fixos -->
+    <div class="botoes-acao-fixos" style="position: fixed !important; bottom: 20px !important; right: 20px !important; z-index: 1001 !important; display: flex; gap: 15px; align-items: center; flex-direction: row;">
+        
+        {% if raqs.aberto %}
+            <button class="button is-large btn-salvar-fixo btn-salvar-ordem" type="submit" form="raqs-form" id="btn-salvar" style="border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; padding: 15px 25px !important; background-color: #4D6F54 !important; border-color: #4D6F54 !important; color: white !important;">
+                <span class="icon">
+                    <i class="fas fa-save"></i>
+                </span>
+                <span>Salvar Alterações</span>
+                <span class="tag is-danger is-small" id="indicador-mudancas" style="display: none; position: absolute; top: -5px; right: -5px; border-radius: 50%; width: 12px; height: 12px; padding: 0;"></span>
+            </button>
+        {% endif %}
+        
+        {% if todos_testes_completos and raqs.aberto %}
+            <form method="post" action="{% url 'fechar_raqs' raqs.id %}" style="display: inline;" class="btn-fechar-ordem">
+                {% csrf_token %}
+                <button class="button is-large" type="submit" style="border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; padding: 15px 25px !important; background-color: #e74c3c !important; border-color: #e74c3c !important; color: white !important;" onclick="return confirm('Tem certeza que deseja fechar este RAQS? Esta ação não pode ser desfeita.')">
+                    <span class="icon">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    <span>Fechar RAQS</span>
+                </button>
+            </form>
+        {% endif %}
+    </div>
+    </div>
+</div>
+
+<!-- Modal para motivos de reprovação -->
+<div class="modal" id="modal-reprovacao">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Motivos da Reprovação</p>
+            <button class="delete" aria-label="close" onclick="closeModal()"></button>
+        </header>
+        <section class="modal-card-body">
+            <p class="has-text-weight-semibold mb-4">Selecione os motivos da reprovação:</p>
+            <div class="field">
+                {% for choice in lista_verificacoes_choices %}
+                    <label class="checkbox is-block mb-3">
+                        <input type="checkbox" name="motivos_reprovacao" value="{{ choice.0 }}" class="mr-2">
+                        {{ choice.1 }}
+                    </label>
+            {% endfor %}
+            </div>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-success" onclick="saveMotivos()">Confirmar</button>
+            <button class="button" onclick="closeModal()">Cancelar</button>
+        </footer>
+    </div>
+</div>
+
+<script>
+let currentSolicitacaoId = null;
+
+function handleTesteVisualChange(select, solicitacaoId) {
+    // Encontrar o campo de resultado específico desta solicitação
+    const dobramentoSelect = document.getElementById('dobramento_aprovado_' + solicitacaoId);
+    const ultrassomSelect = document.getElementById('ultrassom_aprovado_' + solicitacaoId);
+    const resultadoEnsaioSelect = dobramentoSelect || ultrassomSelect;
+    
+    if (select.value === 'Reprovado') {
+        currentSolicitacaoId = solicitacaoId;
+        
+        // Marcar resultado como "Não Realizado" e desabilitar
+        if (resultadoEnsaioSelect) {
+            resultadoEnsaioSelect.value = 'Nao_Realizado';
+            resultadoEnsaioSelect.disabled = true;
+            resultadoEnsaioSelect.style.opacity = '0.5';
+        }
+        
+        openModal();
+    } else if (select.value === 'Aprovado') {
+        // Se aprovado, reabilitar o dropdown de resultado e limpar a seleção
+        if (resultadoEnsaioSelect) {
+            resultadoEnsaioSelect.disabled = false;
+            resultadoEnsaioSelect.style.opacity = '1';
+            resultadoEnsaioSelect.value = ''; // Limpar seleção para permitir nova escolha
+        }
+    } else {
+        // Se "Selecione...", reabilitar o dropdown mas não limpar o valor
+        if (resultadoEnsaioSelect) {
+            resultadoEnsaioSelect.disabled = false;
+            resultadoEnsaioSelect.style.opacity = '1';
+        }
+    }
+}
+
+function editMotivos(solicitacaoId) {
+    currentSolicitacaoId = solicitacaoId;
+    
+    // Carregar motivos já selecionados (do banco ou do hidden input)
+    const button = event.target;
+    const motivosExistentes = button.dataset.motivos;
+    const hiddenInput = document.getElementById('motivos_reprovacao_' + solicitacaoId);
+    
+    // Priorizar motivos do hidden input (não salvos ainda) sobre os do banco
+    let motivosParaCarregar = '';
+    if (hiddenInput && hiddenInput.value) {
+        motivosParaCarregar = hiddenInput.value;
+    } else if (motivosExistentes) {
+        motivosParaCarregar = motivosExistentes;
+    }
+    
+    if (motivosParaCarregar) {
+        const motivosSelecionados = motivosParaCarregar.split(',');
+        const checkboxes = document.querySelectorAll('input[name="motivos_reprovacao"]');
+        checkboxes.forEach(cb => {
+            cb.checked = motivosSelecionados.includes(cb.value);
+        });
+    }
+    
+    openModal();
+}
+
+function openModal() {
+    // Carregar motivos existentes se houver
+    if (currentSolicitacaoId) {
+        const hiddenInput = document.getElementById('motivos_reprovacao_' + currentSolicitacaoId);
+        const button = document.querySelector(`button[onclick="editMotivos(${currentSolicitacaoId})"]`);
+        
+        let motivosParaCarregar = '';
+        if (hiddenInput && hiddenInput.value) {
+            motivosParaCarregar = hiddenInput.value;
+        } else if (button && button.dataset.motivos) {
+            motivosParaCarregar = button.dataset.motivos;
+        }
+        
+        if (motivosParaCarregar) {
+            const motivosSelecionados = motivosParaCarregar.split(',');
+            const checkboxes = document.querySelectorAll('input[name="motivos_reprovacao"]');
+            checkboxes.forEach(cb => {
+                cb.checked = motivosSelecionados.includes(cb.value);
+            });
+        }
+    }
+    
+    document.getElementById('modal-reprovacao').classList.add('is-active');
+}
+
+function closeModal() {
+    document.getElementById('modal-reprovacao').classList.remove('is-active');
+    
+    // Limpar checkboxes do modal
+    const checkboxes = document.querySelectorAll('input[name="motivos_reprovacao"]');
+    checkboxes.forEach(cb => cb.checked = false);
+    
+    // Se cancelar e não há motivos salvos (nem no banco nem no hidden input), voltar o select para vazio
+    if (currentSolicitacaoId) {
+        const testeVisualSelect = document.getElementById('teste_visual_' + currentSolicitacaoId);
+        const hiddenInput = document.getElementById('motivos_reprovacao_' + currentSolicitacaoId);
+        const button = document.querySelector(`button[onclick="editMotivos(${currentSolicitacaoId})"]`);
+        
+        // Se não há motivos salvos no banco E não há hidden input com motivos, limpar a seleção
+        if ((!button || !button.dataset.motivos) && (!hiddenInput || !hiddenInput.value)) {
+            testeVisualSelect.value = '';
+            
+            // Reabilitar o dropdown de resultado se limpar o teste visual
+            const resultadoEnsaioSelect = testeVisualSelect.closest('form').querySelector('.resultado-ensaio');
+            if (resultadoEnsaioSelect) {
+                resultadoEnsaioSelect.disabled = false;
+                resultadoEnsaioSelect.style.opacity = '1';
+                resultadoEnsaioSelect.value = '';
+            }
+        }
+    }
+    currentSolicitacaoId = null;
+}
+
+// Verificar testes visuais no carregamento da página
+document.addEventListener('DOMContentLoaded', function() {
+    const testeVisualSelects = document.querySelectorAll('[id^="teste_visual_"]');
+    testeVisualSelects.forEach(select => {
+        // Extrair o ID da solicitação do ID do select
+        const solicitacaoId = select.id.replace('teste_visual_', '');
+        
+        // Encontrar o campo de resultado específico desta solicitação
+        const dobramentoSelect = document.getElementById('dobramento_aprovado_' + solicitacaoId);
+        const ultrassomSelect = document.getElementById('ultrassom_aprovado_' + solicitacaoId);
+        const resultadoEnsaioSelect = dobramentoSelect || ultrassomSelect;
+        
+        if (select.value === 'Reprovado') {
+            // Se reprovado, desabilitar resultado e marcar como "Não Realizado"
+            if (resultadoEnsaioSelect) {
+                resultadoEnsaioSelect.value = 'Nao_Realizado';
+                resultadoEnsaioSelect.disabled = true;
+                resultadoEnsaioSelect.style.opacity = '0.5';
+            }
+        } else {
+            // Se aprovado ou vazio, habilitar o dropdown de resultado
+            if (resultadoEnsaioSelect) {
+                resultadoEnsaioSelect.disabled = false;
+                resultadoEnsaioSelect.style.opacity = '1';
+            }
+        }
+    });
+});
+
+function saveMotivos() {
+    const checkboxes = document.querySelectorAll('input[name="motivos_reprovacao"]:checked');
+    const motivos = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (motivos.length === 0) {
+        alert('Selecione pelo menos um motivo de reprovação.');
+        return;
+    }
+    
+    // Encontrar o formulário correto para esta solicitação
+    const testeVisualSelect = document.getElementById('teste_visual_' + currentSolicitacaoId);
+    const form = testeVisualSelect.closest('form');
+    
+    let hiddenInput = document.getElementById('motivos_reprovacao_' + currentSolicitacaoId);
+    if (!hiddenInput) {
+        hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.id = 'motivos_reprovacao_' + currentSolicitacaoId;
+        hiddenInput.name = 'motivos_reprovacao_' + currentSolicitacaoId;
+        form.appendChild(hiddenInput);
+    }
+    hiddenInput.value = motivos.join(',');
+    
+    closeModal();
+}
+
+// Fechar modal clicando no background e detectar mudanças
+document.addEventListener('DOMContentLoaded', function() {
+    const modalBackground = document.querySelector('.modal-background');
+    if (modalBackground) {
+        modalBackground.addEventListener('click', closeModal);
+    }
+    
+    // Detectar mudanças no formulário
+    const form = document.getElementById('raqs-form');
+    const indicador = document.getElementById('indicador-mudancas');
+    let formChanged = false;
+    
+    if (form && indicador) {
+        // Monitorar mudanças em todos os selects e inputs
+        form.addEventListener('change', function() {
+            if (!formChanged) {
+                formChanged = true;
+                indicador.style.display = 'block';
+            }
+        });
+        
+        // Esconder indicador após salvar
+        form.addEventListener('submit', function() {
+            formChanged = false;
+            indicador.style.display = 'none';
+        });
+    }
+});
+</script>
+
 {% endblock %}

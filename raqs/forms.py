@@ -9,6 +9,7 @@ from .models import (
     EnsaioUltrassom,
     Raqs,
     Operador,
+    TesteVisual,
 )
 
 
@@ -147,9 +148,6 @@ class EnsaioMecanicoDobramentoForm(BulmaMixin, forms.ModelForm):
         model = EnsaioMecanicoDobramento
         fields = [
             "solicitacao",
-            "fotos_amostra_1",
-            "fotos_amostra_2",
-            "fotos_amostra_3",
             "aprovado",
         ]
 
@@ -160,10 +158,16 @@ class EnsaioUltrassomForm(BulmaMixin, forms.ModelForm):
         fields = ["solicitacao", "aprovado"]
 
 
+class TesteVisualForm(BulmaMixin, forms.ModelForm):
+    class Meta:
+        model = TesteVisual
+        fields = ["resultado", "motivos_reprovacao"]
+
+
 class RaqsForm(BulmaMixin, forms.ModelForm):
     class Meta:
         model = Raqs
-        fields = ["solicitacoes", "lista_de_verificacoes"]
+        fields = ["solicitacoes"]
 
 
 class AdminEmpresaAdmin(UserAdmin):
