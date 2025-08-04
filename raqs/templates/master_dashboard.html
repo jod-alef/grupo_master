@@ -86,7 +86,7 @@
                             <div class="column">
                                 <p><strong>RAQS #{{ raqs_fechado.id }}</strong> - {{ raqs_fechado.n_master }}</p>
                                 <p><small>Data de Fechamento: {{ raqs_fechado.data|date:"d/m/Y" }}</small></p>
-                                <p><small>{{ raqs_fechado.solicitacoes.count }} solicitação{{ raqs_fechado.solicitacoes.count|pluralize:"ões" }} processada{{ raqs_fechado.solicitacoes.count|pluralize:"s" }}</small></p>
+                                <p><small>{{ raqs_fechado.solicitacoes.count }} {{ raqs_fechado.solicitacoes.count|pluralize_pt:"solicitação,solicitações" }} {{ raqs_fechado.solicitacoes.count|pluralize_pt:"processada,processadas" }}</small></p>
                             </div>
                             <div class="column is-narrow">
                                 <a href="{% url 'raqs_detail' raqs_fechado.id %}" class="button is-success">

@@ -1,0 +1,26 @@
+# Copie este conteúdo para o arquivo .env
+
+# Django Settings
+SECRET_KEY=eqp7y$yreki*u9^2@c7898_rt@t3fijwq@w3i1i@l3*ljsn*4%
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database Configuration
+DB_NAME=grupo_master
+DB_USER=postgres
+DB_PASSWORD=sua-senha-postgres
+DB_HOST=localhost
+DB_PORT=5432
+
+# Email Configuration (opcional)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=seu-email@gmail.com
+EMAIL_HOST_PASSWORD=sua-senha-email
+DEFAULT_FROM_EMAIL=noreply@grupo-master.com
+
+# Security Settings (uncomment when you have SSL)
+# SECURE_SSL_REDIRECT=True
+# SESSION_COOKIE_SECURE=True
+# CSRF_COOKIE_SECURE=True 
