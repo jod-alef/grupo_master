@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create logs and media directories
-RUN mkdir -p logs media
+RUN mkdir -p logs media media/logos
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
@@ -33,7 +33,7 @@ RUN python manage.py collectstatic --noinput
 # Create a non-root user
 RUN adduser --disabled-password --gecos '' appuser
 RUN chown -R appuser:appuser /app
-RUN chmod 755 /app/logs /app/media
+RUN chmod -R 755 /app/logs /app/media
 USER appuser
 
 # Expose port
