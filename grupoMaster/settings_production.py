@@ -49,7 +49,7 @@ MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files configuration
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = '/media'
 MEDIA_URL = '/media/'
 
 # Logging configuration
