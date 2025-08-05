@@ -33,7 +33,7 @@ RUN python manage.py collectstatic --noinput
 # Create a non-root user and set ownership BEFORE switching user
 RUN adduser --disabled-password --gecos '' appuser
 RUN chown -R appuser:appuser /app
-RUN chmod 755 /app/logs /app/media
+RUN chmod 755 logs media
 
 USER appuser
 
