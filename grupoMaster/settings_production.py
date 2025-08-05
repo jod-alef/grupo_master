@@ -110,6 +110,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # CSRF configuration
 CSRF_COOKIE_AGE = 3600  # 1 hour
 CSRF_COOKIE_HTTPONLY = True
+CSRF_TRUSTED_ORIGINS = [
+    'http://' + host.strip() for host in ALLOWED_HOSTS if host.strip() != 'localhost' and host.strip() != '127.0.0.1'
+] + [
+    'https://' + host.strip() for host in ALLOWED_HOSTS if host.strip() != 'localhost' and host.strip() != '127.0.0.1'
+]
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
