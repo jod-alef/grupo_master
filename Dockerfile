@@ -36,7 +36,7 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8005
 
 # Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "grupoMaster.wsgi:application"] 
+CMD ["gunicorn", "--bind", "0.0.0.0:8005", "--workers", "3", "grupoMaster.wsgi:application"] 

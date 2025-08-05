@@ -12,7 +12,7 @@
 - **Branch**: main
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT grupoMaster.wsgi:application`
-- **Port**: 8000
+- **Port**: 8005
 
 ### 3. Variáveis de Ambiente (Environment Variables)
 
@@ -45,7 +45,7 @@ DEFAULT_FROM_EMAIL=noreply@grupo-master.com
 
 ### 5. Health Check
 - **Path**: `/`
-- **Port**: 8000
+- **Port**: 8005
 - **Interval**: 30s
 - **Timeout**: 10s
 
@@ -65,7 +65,7 @@ DEFAULT_FROM_EMAIL=noreply@grupo-master.com
 ### 3. Configurar Build
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT grupoMaster.wsgi:application`
-- **Port**: 8000
+- **Port**: 8005
 
 ### 4. Configurar Variáveis de Ambiente
 Copie as variáveis acima e configure no painel do Coolify.
