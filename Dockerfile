@@ -33,6 +33,7 @@ RUN python manage.py collectstatic --noinput
 # Create a non-root user
 RUN adduser --disabled-password --gecos '' appuser
 RUN chown -R appuser:appuser /app
+RUN chmod 755 /app/logs
 USER appuser
 
 # Expose port
