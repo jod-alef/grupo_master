@@ -230,9 +230,10 @@ def solicitacoes_soldador(request, soldador_id):
 def is_grupo_master(user):
     return (
         user.is_authenticated
-        and hasattr(user, "empresa")
-        and user.empresa.nome == "Grupo Master"
-        or user.is_superuser
+        and (
+            user.is_superuser
+            or (hasattr(user, "empresa") and user.empresa and user.empresa.nome == "Grupo Master")
+        )
     )
 
 
