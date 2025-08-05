@@ -28,7 +28,7 @@ DB_NAME=grupo_master
 DB_USER=postgres
 DB_PASSWORD=sua-senha-postgres
 DB_HOST=seu-host-postgres
-DB_PORT=5432
+DB_PORT=5435
 
 # Email Configuration (opcional)
 EMAIL_HOST=smtp.gmail.com
