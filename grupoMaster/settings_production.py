@@ -44,6 +44,10 @@ SECURE_HSTS_PRELOAD = True
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATIC_URL = '/static/'
 
+# WhiteNoise configuration for serving static files
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files configuration
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
