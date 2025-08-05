@@ -24,17 +24,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
-# Create logs and media directories with proper permissions
-RUN mkdir -p logs media
+# Create logs directory and media at root
+RUN mkdir -p logs
+RUN mkdir -p /media
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
 # Create a non-root user and set ownership BEFORE switching user
 RUN adduser --disabled-password --gecos '' appuser
-RUN chown -R appuser:appuser /logs
-RUN chown -R appuser:appuser /media
-RUN chmod 755 logs media
+RUN chown -R appuser:appuser /app
+RUN chown appuser:appuser /media
+RUN chmod 755 logs
+RUN chmod 755 /media
 
 USER appuser
 
