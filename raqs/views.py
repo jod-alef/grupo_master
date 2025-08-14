@@ -348,9 +348,12 @@ def custom_login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect(
-                    "empresa-dashboard"
-                )  # Redirect to a dashboard or home page
+                
+                # Redirect based on user's company
+                if hasattr(user, 'empresa') and user.empresa and user.empresa.nome == "Grupo Master":
+                    return redirect("master_dashboard")
+                else:
+                    return redirect("empresa-dashboard")
             else:
                 messages.error(request, "Senha ou usuário inválidos. Tente novamente..")
         else:
