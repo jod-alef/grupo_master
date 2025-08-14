@@ -27,6 +27,23 @@
         .header-fixo .title {
             font-size: 1.5rem !important;
         }
+        
+        .header-fixo .buttons {
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+        }
+        
+        .header-fixo .tag {
+            margin-right: 0 !important;
+            margin-bottom: 0.5rem !important;
+        }
+    }
+    
+    /* Melhorar alinhamento dos botões */
+    .header-fixo .buttons {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
 </style>
 {% endblock %}
@@ -38,11 +55,27 @@
         <div class="container">
             <div class="columns is-vcentered">
                 <div class="column is-narrow" style="padding-right: 2rem;">
-                    <img src="/media/logos/grupo_master.png" alt="Grupo Master" style="height: 60px; max-width: 120px;">
+                    <img src="{% static 'imgs/grupo_master.png' %}" alt="Grupo Master" style="height: 60px; max-width: 120px;">
                 </div>
                 <div class="column">
                     <h1 class="title is-3 mb-2" style="color: #4D6F54 !important;">Dashboard do Grupo Master</h1>
                     <p class="subtitle is-6" style="color: #666;">Soldadores agrupados por empresa e suas solicitações</p>
+                </div>
+                <div class="column is-narrow">
+                    <div class="buttons">
+                        <div class="navbar-item">
+                            <span class="tag is-light mr-3">{{ request.user.username }}</span>
+                        </div>
+                        <form method="POST" action="{% url 'logout' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button class="button is-danger is-outlined" type="submit">
+                                <span class="icon">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </span>
+                                <span>Sair</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
