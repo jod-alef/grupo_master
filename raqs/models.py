@@ -2,8 +2,10 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import User, AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 
 
 class Soldador(models.Model):
@@ -96,17 +98,17 @@ class SolicitacaoCadastroSoldador(models.Model):
     consumivel_spec = models.CharField(max_length=15, choices=CONSUMIVEL_SPEC_CHOICES)
 
     CONSUMIVEL_CLASS_CHOICES = [
-        ("E7018", "E7018"),
-        ("E6010", "E6010"),
-        ("E-71T-1", "E-71T-1"),
-        ("E-309L", "E-309L"),
-        ("ER-70S-3", "ER-70S-3"),
-        ("ER-70S-6", "ER-70S-6"),
+        ("E-6010", "E-6010"),
+        ("E-7018", "E-7018"), 
+        ("ER-70S3", "ER-70S3"),
+        ("ER-70S6", "ER-70S6"),
+        ("E-71T1", "E-71T1"),
         ("ER-309L", "ER-309L"),
         ("ER-308L", "ER-308L"),
         ("ER-NiCrFe3", "ER-NiCrFe3"),
         ("E-NiCrFe3", "E-NiCrFe3"),
-        ("ER-NiCrMo3", "E-NiCrMo3"),
+        ("E-309L", "E-309L"),
+        ("ER-NiCrMo3", "ER-NiCrMo3"),
     ]
     consumivel_classificacao = models.CharField(
         max_length=10, choices=CONSUMIVEL_CLASS_CHOICES
@@ -303,6 +305,17 @@ class Raqs(models.Model):
 
 
 class CQS(models.Model):
+    numero = models.CharField(max_length=20, unique=True, blank=True)
+    solicitacao = models.OneToOneField(
+        SolicitacaoCadastroSoldador,
+        on_delete=models.CASCADE,
+        related_name="cqs",
+        null=True,
+        blank=True
+    )
+    data_emissao = models.DateField(auto_now_add=True)
+    data_validade = models.DateField(null=True, blank=True)
+    
     FQ_CONSUMIVEL_CHOICES = (
         ("1-3", "1 a 3"),
         ("1-4", "1 a 4"),
@@ -315,9 +328,15 @@ class CQS(models.Model):
         ("1-15f-34-41-49", "1 a 15 f, 34, 41 a 49"),
         ("todos", "TODOS"),
     )
-    fq_metal_de_base = models.CharField(max_length=15, choices=FQ_METAL_DE_BASE_CHOICES)
+    fq_metal_de_base = models.CharField(max_length=30, choices=FQ_METAL_DE_BASE_CHOICES)
+    
+    # PN# para ASME
     PN_METAL_DE_BASE_CHOICES = (("1", "1"), ("3", "3"), ("46", "46"), ("8", "8"))
-    pn_metal_de_base = models.CharField(max_length=2, choices=PN_METAL_DE_BASE_CHOICES)
+    pn_metal_de_base = models.CharField(max_length=2, choices=PN_METAL_DE_BASE_CHOICES, blank=True, null=True)
+    
+    # GN# para AWS
+    GN_METAL_DE_BASE_CHOICES = (("1", "1"),)
+    gn_metal_de_base = models.CharField(max_length=2, choices=GN_METAL_DE_BASE_CHOICES, blank=True, null=True)
     MODO_TRANSF_CHOICES = (
         ("N/A", "N/A"),
         ("CURTO_CIRCUITO", "Curto Circuito"),
@@ -328,28 +347,45 @@ class CQS(models.Model):
         max_length=15, choices=MODO_TRANSF_CHOICES, null=True, blank=True
     )
 
+    def save(self, *args, **kwargs):
+        if not self.numero and self.solicitacao:
+            # Gerar número CQS baseado na empresa e sequência
+            empresa = self.solicitacao.empresa
+            ano = self.data_emissao.year if self.data_emissao else timezone.now().year
+            
+            # Contar CQS existentes da empresa no ano
+            count = CQS.objects.filter(
+                solicitacao__empresa=empresa,
+                data_emissao__year=ano
+            ).count() + 1
+            
+            self.numero = f"CQS-{empresa.nome[:3].upper()}-{ano}-{count:03d}"
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"CQS {self.numero}"
+
+    class Meta:
+        verbose_name = "CQS - Certificado de Qualificação de Soldador"
+        verbose_name_plural = "CQS - Certificados de Qualificação de Soldadores"
+
 
 @receiver(pre_save, sender=SolicitacaoCadastroSoldador)
 def set_f_number(sender, instance, **kwargs):
-    # Mapeamento de consumível para f_number
+    # Mapeamento de consumível para f_number (baseado no CSV regras_classificacao.csv)
     f_number_mapping = {
-        "E6010": "3",
         "E-6010": "3",
-        "E7018": "4",
-        "E-7018": "4",
+        "E-7018": "4", 
         "ER-70S3": "6",
-        "ER-70S-3": "6",
         "ER-70S6": "6",
-        "ER-70S-6": "6",
         "E-71T1": "6",
-        "E-71T-1": "6",
         "ER-309L": "6",
         "ER-308L": "6",
         "ER-NiCrFe3": "43",
         "E-NiCrFe3": "43",
         "E-309L": "5",
         "ER-NiCrMo3": "43",
-        "E-NiCrMo3": "43",
     }
 
     # Define o f_number com base no consumível escolhido
@@ -359,18 +395,108 @@ def set_f_number(sender, instance, **kwargs):
 
 
 @receiver(pre_save, sender=CQS)
-def set_fq_consumivel(sender, instance, **kwargs):
-    # Mapeamento de f_number para fq_consumivel
+def set_cqs_technical_fields(sender, instance, **kwargs):
+    """
+    Auto-preenche campos técnicos do CQS baseado na solicitação
+    Baseado no mapeamento: ER-70S-6 → f_number=6 → fq_consumivel=6
+    """
+    if not (hasattr(instance, "solicitacao") and instance.solicitacao):
+        return
+    
+    solicitacao = instance.solicitacao
+    
+    # 1. Mapeamento de f_number para fq_consumivel
     f_number_to_fq = {
         "3": "1-3",
-        "4": "1-4",
+        "4": "1-4", 
         "6": "6",
         "43": "34-41-46",
         "5": "1-5",
     }
+    
+    if hasattr(solicitacao, 'f_number') and solicitacao.f_number in f_number_to_fq:
+        instance.fq_consumivel = f_number_to_fq[solicitacao.f_number]
+    
+    # 2. Lógica baseada na norma do projeto
+    if hasattr(solicitacao, 'norma_projeto') and solicitacao.norma_projeto:
+        norma = solicitacao.norma_projeto
+        
+        if norma == "AWS_D1-1":
+            # AWS D1.1: GN# = 1, Faixa = "TODOS"
+            instance.gn_metal_de_base = "1"
+            instance.pn_metal_de_base = None  # Limpar PN# se existir
+            instance.fq_metal_de_base = "todos"
+        else:
+            # Qualquer outra norma (ASME): PN# baseado no material, Faixa = "1 a 15 f, 34, 41 a 49"
+            instance.gn_metal_de_base = None  # Limpar GN# se existir
+            instance.fq_metal_de_base = "1-15f-34-41-49"
+            
+            # Mapear metal_base_spec para PN# (baseado no CSV2)
+            pn_mapping = {
+                "A-36": "1",
+                "A240 TP 310": "8", 
+                "B-536": "46",
+                "A-106": "1",
+                "16MO3": "3",
+            }
+            
+            metal_spec = getattr(solicitacao, 'metal_base_spec', '')
+            instance.pn_metal_de_base = pn_mapping.get(metal_spec, "1")  # Default 1
+    else:
+        # Sem norma definida - usar padrão AWS  
+        instance.gn_metal_de_base = "1"
+        instance.pn_metal_de_base = None
+        instance.fq_metal_de_base = "todos"
+    
+    # 3. Calcular data de validade (6 meses após aprovação dos ensaios)
+    if not instance.data_validade:
+        data_aprovacao = None
+        
+        # Buscar data de aprovação do ensaio mecânico
+        try:
+            ensaio_mecanico = EnsaioMecanicoDobramento.objects.get(
+                solicitacao=solicitacao, aprovado=True
+            )
+            data_aprovacao = ensaio_mecanico.data_teste
+        except EnsaioMecanicoDobramento.DoesNotExist:
+            pass
+        
+        # Se não encontrou mecânico aprovado, buscar ultrassom
+        if not data_aprovacao:
+            try:
+                ensaio_ultrassom = EnsaioUltrassom.objects.get(
+                    solicitacao=solicitacao, aprovado=True
+                )
+                data_aprovacao = ensaio_ultrassom.data_teste
+            except EnsaioUltrassom.DoesNotExist:
+                pass
+        
+        # Se encontrou data de aprovação, calcular validade (6 meses)
+        if data_aprovacao:
+            instance.data_validade = data_aprovacao + relativedelta(months=6)
+    
+    # 4. Auto-preencher modo_transferencia baseado no processo
+    if hasattr(solicitacao, 'processo'):
+        if solicitacao.processo in ["GMAW", "FCAW"]:
+            instance.modo_transferencia = "CURTO_CIRCUITO"  # padrão mais comum para MIG/MAG
+        else:
+            instance.modo_transferencia = "N/A"
+    else:
+        instance.modo_transferencia = "N/A"
 
-    # Auto-preencher fq_consumivel com base no f_number da solicitação
-    if hasattr(instance, "solicitacao") and instance.solicitacao:
-        f_number = instance.solicitacao.f_number
-        if f_number in f_number_to_fq:
-            instance.fq_consumivel = f_number_to_fq[f_number]
+
+@receiver(post_save, sender=EnsaioMecanicoDobramento)
+@receiver(post_save, sender=EnsaioUltrassom)
+def criar_cqs_quando_aprovado(sender, instance, created, **kwargs):
+    """
+    Cria automaticamente o CQS quando um ensaio é aprovado
+    """
+    if instance.aprovado and instance.solicitacao:
+        # Verificar se já existe CQS para esta solicitação
+        if not hasattr(instance.solicitacao, 'cqs') or not instance.solicitacao.cqs:
+            # Criar novo CQS - todos os campos técnicos serão preenchidos pelo signal do CQS
+            cqs = CQS.objects.create(
+                solicitacao=instance.solicitacao,
+                data_validade=instance.data_teste + relativedelta(months=6)
+            )
+            print(f"CQS {cqs.numero} criado automaticamente para {instance.solicitacao.soldador.nome}")
