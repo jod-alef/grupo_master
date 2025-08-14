@@ -6,7 +6,7 @@ from django.urls import path
 from raqs import views
 
 urlpatterns = [
-    path("", views.empresa_dashboard, name="index"),
+    path("", views.dashboard_redirect, name="index"),
     path("admin/", admin.site.urls),
     path(
         "update-ensaio-choices/",

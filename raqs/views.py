@@ -10,6 +10,23 @@ from django.contrib.auth.decorators import user_passes_test
 from collections import defaultdict
 
 
+@login_required
+def dashboard_redirect(request):
+    """
+    Redireciona para o dashboard apropriado baseado na empresa do usuário:
+    - Grupo Master → master_dashboard
+    - Outras empresas → empresa-dashboard
+    """
+    if hasattr(request.user, 'empresa') and request.user.empresa:
+        if request.user.empresa.nome == "Grupo Master":
+            return redirect("master_dashboard")
+        else:
+            return redirect("empresa-dashboard")
+    else:
+        # Se não tem empresa definida, vai para dashboard empresa por padrão
+        return redirect("empresa-dashboard")
+
+
 def solicitacao_qualificacao_soldador(request, soldador_id=None):
     soldador = get_object_or_404(Soldador, id=soldador_id) if soldador_id else None
     empresa = get_object_or_404(
