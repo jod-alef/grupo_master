@@ -272,8 +272,8 @@ class TesteVisual(models.Model):
 
 
 class Raqs(models.Model):
-    n_master = models.CharField(max_length=10, editable=False)
-    n_sequencia = models.CharField(max_length=10, editable=False)
+    n_master = models.CharField(max_length=20, editable=False)
+    n_sequencia = models.CharField(max_length=15, editable=False)
     empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT)
     solicitacoes = models.ManyToManyField(
         SolicitacaoCadastroSoldador, related_name="raqs"
@@ -286,13 +286,20 @@ class Raqs(models.Model):
         if not self.pk:
             from django.db.models import F
 
+            # Atualizar contador da empresa
             self.empresa.n_raqs = F("n_raqs") + 1
             self.empresa.save()
             self.empresa.refresh_from_db()
+            
+            # Definir n_sequencia
             self.n_sequencia = str(self.empresa.n_raqs)
+            
+            # Primeiro save para obter o pk
             super().save(*args, **kwargs)
+            
+            # Definir n_master e fazer segundo save apenas com o campo n_master
             self.n_master = f"MAST-FORM-{self.pk}"
-            super().save(update_fields=["n_master", "n_sequencia"])
+            super().save(update_fields=["n_master"])
         else:
             super().save(*args, **kwargs)
 
