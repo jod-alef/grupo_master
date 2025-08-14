@@ -378,8 +378,8 @@ def update_consumivel_classificacao(request):
 
     if processo_soldagem == "SMAW":
         form.fields["consumivel_classificacao"].choices = [
-            ("E6010", "E6010"),
-            ("E7018", "E7018"),
+            ("E-6010", "E-6010"),
+            ("E-7018", "E-7018"),
             ("E-NiCrFe3", "E-NiCrFe3"),
             ("E-309L", "E-309L"),
         ]
@@ -390,7 +390,7 @@ def update_consumivel_classificacao(request):
         ]
     elif processo_soldagem == "GTAW":
         form.fields["consumivel_classificacao"].choices = [
-            ("ER-70S-3", "ER-70S-3"),
+            ("ER-70S3", "ER-70S3"),
             ("ER-309L", "ER-309L"),
             ("ER-308L", "ER-308L"),
             ("ER-NiCrFe3", "ER-NiCrFe3"),
@@ -405,7 +405,7 @@ def update_consumivel_classificacao(request):
         form.fields["gas_protecao"].choices = [("ARGONIO", "Argônio")]
     elif processo_soldagem == "GMAW":
         form.fields["consumivel_classificacao"].choices = [
-            ("ER-70S-6", "ER-70S-6"),
+            ("ER-70S6", "ER-70S6"),
         ]
         form.fields["consumivel_spec"].choices = [
             ("SFA_5-18", "SFA 5.18"),
@@ -415,7 +415,7 @@ def update_consumivel_classificacao(request):
             ("ARCO2", "Ar+CO²"),
         ]
     elif processo_soldagem == "FCAW":
-        form.fields["consumivel_classificacao"].choices = [("E-71T-1", "E-71T-1")]
+        form.fields["consumivel_classificacao"].choices = [("E-71T1", "E-71T1")]
         form.fields["consumivel_spec"].choices = [
             ("SFA_5-20", "SFA 5.20"),
         ]

@@ -2,115 +2,115 @@
 
 {% if solicitacoes %}
     <div class="px-5 pb-3">
-        {% comment %} Solicitações Abertas (Aguardando) {% endcomment %}
-        <div class="solicitacoes-section">
-            <div class="section-header">
-                <h5 class="section-subtitle">
-                    <i class="fas fa-clock icon-yellow"></i>
-                    Solicitações Abertas
-                </h5>
-            </div>
-            <div class="solicitacoes-list">
-                {% if solicitacoes_abertas %}
-                    {% for solicitacao in solicitacoes_abertas %}
-                        {% with status=soldador_status|get_item:solicitacao.id %}
-                            <div class="solicitacao-item">
-                                <div class="columns is-vcentered is-mobile mb-0">
-                                    <div class="column">
-                                        <div class="solicitacao-info">
-                                            <div class="is-flex is-align-items-center mb-1">
-                                                <span class="solicitacao-sinete">{{ solicitacao.sinete }}</span>
-                                                <span class="tag is-warning is-rounded ml-2">
+        <!-- Layout em duas colunas para solicitações abertas e finalizadas -->
+        <div class="columns is-variable is-3">
+            
+            <!-- Coluna esquerda: Solicitações Abertas -->
+            <div class="column is-half">
+                <div class="solicitacoes-section">
+                    <div class="section-header">
+                        <h5 class="section-subtitle">
+                            Solicitações Abertas
+                        </h5>
+                    </div>
+                    <div class="solicitacoes-list">
+                        {% if solicitacoes_abertas %}
+                            {% for solicitacao in solicitacoes_abertas %}
+                                {% with status=soldador_status|get_item:solicitacao.id %}
+                                    <div class="solicitacao-item">
+                                        <div class="solicitacao-content">
+                                            <div class="solicitacao-info">
+                                                <div class="is-flex is-align-items-center mb-1">
+                                                    <span class="solicitacao-sinete">{{ solicitacao.sinete }}</span>
+                                                    <span class="tag is-warning is-rounded ml-2">
+                                                        <span class="icon is-small">
+                                                            <i class="fas fa-clock"></i>
+                                                        </span>
+                                                        <span>{{ status }}</span>
+                                                    </span>
+                                                </div>
+                                                <div class="solicitacao-meta">
+                                                    <span class="meta-item">
+                                                        <i class="fas fa-calendar-alt"></i>
+                                                        {{ solicitacao.data|date:"d/m/Y" }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="solicitacao-actions mt-2">
+                                                <button class="button btn-danger-custom is-small is-fullwidth" 
+                                                        hx-delete="{% url 'apagar-solicitacao' solicitacao.id %}" 
+                                                        hx-confirm="Tem certeza que deseja apagar esta solicitação?" 
+                                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
                                                     <span class="icon is-small">
-                                                        <i class="fas fa-clock"></i>
+                                                        <i class="fas fa-trash"></i>
                                                     </span>
-                                                    <span>{{ status }}</span>
-                                                </span>
-                                            </div>
-                                            <div class="solicitacao-meta">
-                                                <span class="meta-item">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                    {{ solicitacao.data|date:"d/m/Y" }}
-                                                </span>
+                                                    <span>Apagar</span>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="column is-narrow">
-                                        <div class="action-buttons-list">
-                                            <button class="button btn-danger-custom is-small" 
-                                                    hx-delete="{% url 'apagar-solicitacao' solicitacao.id %}" 
-                                                    hx-confirm="Tem certeza que deseja apagar esta solicitação?" 
-                                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-                                                <span class="icon is-small">
-                                                    <i class="fas fa-trash"></i>
-                                                </span>
-                                                <span>Apagar</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                {% endwith %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-section">
+                                <p class="empty-text">Nenhuma solicitação aberta</p>
                             </div>
-                        {% endwith %}
-                    {% endfor %}
-                {% else %}
-                    <div class="empty-section">
-                        <p class="empty-text">Nenhuma solicitação aberta</p>
+                        {% endif %}
                     </div>
-                {% endif %}
+                </div>
             </div>
-        </div>
 
-        {% comment %} Solicitações Finalizadas (Aprovadas/Reprovadas) {% endcomment %}
-        <div class="solicitacoes-section mt-4">
-            <div class="section-header">
-                <h5 class="section-subtitle">
-                    <i class="fas fa-flag-checkered icon-blue"></i>
-                    Solicitações Finalizadas
-                </h5>
-            </div>
-            <div class="solicitacoes-list">
-                {% if solicitacoes_finalizadas %}
-                    {% for solicitacao in solicitacoes_finalizadas %}
-                        {% with status=soldador_status|get_item:solicitacao.id %}
-                            <div class="solicitacao-item">
-                                <div class="columns is-vcentered is-mobile mb-0">
-                                    <div class="column">
-                                        <div class="solicitacao-info">
-                                            <div class="is-flex is-align-items-center mb-1">
-                                                <span class="solicitacao-sinete">{{ solicitacao.sinete }}</span>
-                                                {% if "Reprovado" in status %}
-                                                    <span class="tag is-danger is-rounded ml-2">
-                                                        <span class="icon is-small">
-                                                            <i class="fas fa-times"></i>
+            <!-- Coluna direita: Solicitações Finalizadas -->
+            <div class="column is-half">
+                <div class="solicitacoes-section">
+                    <div class="section-header">
+                        <h5 class="section-subtitle">
+                            Solicitações Finalizadas
+                        </h5>
+                    </div>
+                    <div class="solicitacoes-list">
+                        {% if solicitacoes_finalizadas %}
+                            {% for solicitacao in solicitacoes_finalizadas %}
+                                {% with status=soldador_status|get_item:solicitacao.id %}
+                                    <div class="solicitacao-item">
+                                        <div class="solicitacao-content">
+                                            <div class="solicitacao-info">
+                                                <div class="is-flex is-align-items-center mb-1">
+                                                    <span class="solicitacao-sinete">{{ solicitacao.sinete }}</span>
+                                                    {% if "Reprovado" in status %}
+                                                        <span class="tag is-danger is-rounded ml-2">
+                                                            <span class="icon is-small">
+                                                                <i class="fas fa-times"></i>
+                                                            </span>
+                                                            <span>{{ status }}</span>
                                                         </span>
-                                                        <span>{{ status }}</span>
-                                                    </span>
-                                                {% elif "Aprovado" in status %}
-                                                    <span class="tag is-success is-rounded ml-2">
-                                                        <span class="icon is-small">
-                                                            <i class="fas fa-check"></i>
+                                                    {% elif "Aprovado" in status %}
+                                                        <span class="tag is-success is-rounded ml-2">
+                                                            <span class="icon is-small">
+                                                                <i class="fas fa-check"></i>
+                                                            </span>
+                                                            <span>{{ status }}</span>
                                                         </span>
-                                                        <span>{{ status }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="solicitacao-meta">
+                                                    <span class="meta-item">
+                                                        <i class="fas fa-calendar-alt"></i>
+                                                        {{ solicitacao.data|date:"d/m/Y" }}
                                                     </span>
-                                                {% endif %}
-                                            </div>
-                                            <div class="solicitacao-meta">
-                                                <span class="meta-item">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                    {{ solicitacao.data|date:"d/m/Y" }}
-                                                </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                {% endwith %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-section">
+                                <p class="empty-text">Nenhuma solicitação finalizada</p>
                             </div>
-                        {% endwith %}
-        {% endfor %}
-                {% else %}
-                    <div class="empty-section">
-                        <p class="empty-text">Nenhuma solicitação finalizada</p>
+                        {% endif %}
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -131,7 +131,9 @@
     }
     
     .section-header {
+        margin-top: 0.5rem;
         margin-bottom: 0.75rem;
+        padding-top: 0.25rem;
         padding-bottom: 0.5rem;
         border-bottom: 1px solid #e9ecef;
     }
@@ -141,17 +143,6 @@
         font-weight: 600;
         color: #495057;
         margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .icon-yellow {
-        color: #ffc107;
-    }
-    
-    .icon-blue {
-        color: #007bff;
     }
     
     .solicitacoes-list {
@@ -161,13 +152,12 @@
     }
     
     .solicitacao-item {
-        transition: background-color 0.2s ease;
+        transition: background-color 0.2s ease, transform 0.2s ease;
         border-radius: 6px;
-        padding: 0.75rem 0;
         background: white;
-        margin-bottom: 0.5rem;
-        padding: 0.75rem;
+        margin-bottom: 0.75rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        border: 1px solid #e9ecef;
     }
     
     .solicitacao-item:last-child {
@@ -175,7 +165,13 @@
     }
     
     .solicitacao-item:hover {
-        background-color: #f1f3f4;
+        background-color: #f8f9fa;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+    
+    .solicitacao-content {
+        padding: 0.75rem;
     }
     
     .solicitacao-sinete {
@@ -269,5 +265,29 @@
         background-color: #dc3545;
         color: white;
         font-size: 0.7rem;
+    }
+    
+    /* Responsividade melhorada */
+    @media (max-width: 768px) {
+        .columns.is-variable.is-3 {
+            margin: 0 !important;
+        }
+        
+        .column.is-half {
+            padding: 0.5rem !important;
+        }
+        
+        .solicitacao-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-subtitle {
+            font-size: 0.8rem;
+        }
+        
+        .btn-danger-custom {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
     }
 </style>
